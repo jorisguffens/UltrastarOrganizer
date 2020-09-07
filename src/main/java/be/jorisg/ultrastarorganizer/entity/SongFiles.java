@@ -67,7 +67,7 @@ public class SongFiles {
 
     private File rename(File file, String name) {
         String ext = FilenameUtils.getExtension(file.getName());
-        File dest = new File(file.getParent(), name + "" + ext);
+        File dest = new File(file.getParent(), name + "." + ext);
         file.renameTo(dest);
         return dest;
     }

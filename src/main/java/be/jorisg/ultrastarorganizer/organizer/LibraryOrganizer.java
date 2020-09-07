@@ -39,8 +39,6 @@ public class LibraryOrganizer {
                 e.printStackTrace();
             }
         }
-
-        System.out.println("Done!");
     }
 
     private void process(File dir, boolean convertAudio, boolean removeVideo, boolean cleanCaches) throws IOException {

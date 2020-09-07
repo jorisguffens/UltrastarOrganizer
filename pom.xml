@@ -60,22 +60,33 @@
         </dependency>
 
         <dependency>
-            <groupId>edu.cmu.sphinx</groupId>
-            <artifactId>sphinx4-core</artifactId>
-            <version>5prealpha-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>edu.cmu.sphinx</groupId>
-            <artifactId>sphinx4-data</artifactId>
-            <version>5prealpha-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>aws-sdk-java</artifactId>
             <version>2.13.7</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/mp3spi -->
+        <dependency>
+            <groupId>com.googlecode.soundlibs</groupId>
+            <artifactId>mp3spi</artifactId>
+            <version>1.9.5-1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/tritonus-all -->
+        <dependency>
+            <groupId>com.googlecode.soundlibs</groupId>
+            <artifactId>tritonus-all</artifactId>
+            <version>0.3.7.2</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/javazoom/jlayer -->
+        <dependency>
+            <groupId>javazoom</groupId>
+            <artifactId>jlayer</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+
     </dependencies>
 
 </project>

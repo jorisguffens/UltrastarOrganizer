@@ -57,22 +57,26 @@ public class Main {
             return;
         }
 
+        System.out.println("Organizing library...");
         LibraryOrganizer organizer = new LibraryOrganizer(dir);
         organizer.run(convertAudio, removeVideo, cleanCaches);
+        System.out.println("\n\n");
+
 
         String sync = cmd.getOptionValue("synchronize");
         if ( sync != null && (sync.equals("search") || sync.equals("update")) ) {
+            System.out.println("Synchronizing lyrics...");
             LibrarySynchronizer synchronizer = new LibrarySynchronizer(dir);
             synchronizer.run(sync.equals("update"));
+            System.out.println("\n\n");
         }
+
 
         TableList tl = new TableList(2, "CODE", "Description").sortBy(0);
         tl.addRow("0", "Can't find any info (.txt) files.");
         tl.addRow("1", "Invalid info (.txt) file. It is corrupt or headers are missing.");
         tl.addRow("2", "Too many audio files. It can't decide the correct one.");
         tl.addRow("3", "No audio (.mp3) file. There is no audio file or the video can't be converted.");
-
-        System.out.println("\n\n");
         tl.print();
     }
 

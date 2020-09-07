@@ -20,8 +20,8 @@ public class SongInfo {
 
     public File infoFile;
 
-    private Map<String, String> headers = new HashMap<>();
-    private List<String> lyrics = new ArrayList<>();
+    private final Map<String, String> headers = new HashMap<>();
+    private List<String> notes = new ArrayList<>();
 
     public SongInfo(File infoFile) throws InvalidSongInfoFileException {
         this.infoFile = infoFile;
@@ -60,7 +60,7 @@ public class SongInfo {
         }
 
         for ( int i = n; i < lines.size(); i++ ) {
-            lyrics.add(lines.get(i));
+            notes.add(lines.get(i));
         }
 
         if ( headers.size() == 0 || !containsHeader("artist") || !containsHeader("title") ) {
@@ -70,6 +70,14 @@ public class SongInfo {
 
     public File getFile() {
         return infoFile;
+    }
+
+    public List<String> getNotes() {
+        return notes;
+    }
+
+    public void setNotes(List<String> notes) {
+        this.notes = notes;
     }
 
     public boolean containsHeader(String key) {
@@ -173,8 +181,8 @@ public class SongInfo {
                 outputStream.write((line + "\n").getBytes(StandardCharsets.US_ASCII));
             }
 
-            // lyrics
-            for ( String line : lyrics ) {
+            // notes
+            for ( String line : notes ) {
                 outputStream.write((line + "\n").getBytes(StandardCharsets.US_ASCII));
             }
         } catch (IOException e) {
