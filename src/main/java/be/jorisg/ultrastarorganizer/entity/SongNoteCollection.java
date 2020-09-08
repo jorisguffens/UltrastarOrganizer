@@ -3,20 +3,20 @@ package be.jorisg.ultrastarorganizer.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NoteCollection {
+public class SongNoteCollection {
 
-    private final List<Note> notes = new ArrayList<>();
+    private final List<SongNote> notes = new ArrayList<>();
 
-    public NoteCollection(List<String> lines) {
+    public SongNoteCollection(List<String> lines) {
         for ( String line : lines ) {
             if ( line.startsWith("E") ) {
                 break;
             }
-            notes.add(new Note(line));
+            notes.add(new SongNote(line));
         }
     }
 
-    public List<Note> getNotes() {
+    public List<SongNote> getNotes() {
         return notes;
     }
 
@@ -25,14 +25,14 @@ public class NoteCollection {
             throw new IllegalArgumentException();
         }
 
-        for ( Note note : notes ) {
+        for ( SongNote note : notes ) {
             note.setBeat(note.getBeat() + amount);
         }
     }
 
     public List<String> getLines() {
         List<String> lines = new ArrayList<>();
-        for ( Note note :notes ) {
+        for ( SongNote note :notes ) {
             lines.add(note.toString());
         }
         return lines;

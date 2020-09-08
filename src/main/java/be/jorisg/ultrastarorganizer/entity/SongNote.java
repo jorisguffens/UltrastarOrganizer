@@ -3,7 +3,7 @@ package be.jorisg.ultrastarorganizer.entity;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-public class Note {
+public class SongNote {
 
     private NoteType type;
 
@@ -13,7 +13,7 @@ public class Note {
     private int tone;
     private String text;
 
-    public Note(String line) {
+    public SongNote(String line) {
         String[] args = line.split(Pattern.quote(" "));
         type = NoteType.fromKey(args[0]);
         beat = Integer.parseInt(args[1]);

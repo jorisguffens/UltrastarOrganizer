@@ -1,17 +1,15 @@
 package be.jorisg.ultrastarorganizer.synchronizer;
 
-import be.jorisg.ultrastarorganizer.entity.Note;
-import be.jorisg.ultrastarorganizer.entity.NoteCollection;
+import be.jorisg.ultrastarorganizer.entity.SongNote;
+import be.jorisg.ultrastarorganizer.entity.SongNoteCollection;
 import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import be.jorisg.ultrastarorganizer.transcribe.AudioStreamPublisher;
-import be.jorisg.ultrastarorganizer.transcribe.Microphone;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import be.tarsos.dsp.AudioDispatcher;
+import be.tarsos.dsp.io.jvm.AudioPlayer;
 import be.tarsos.dsp.io.jvm.JVMAudioInputStream;
 import be.tarsos.dsp.pitch.PitchProcessor;
-import javazoom.jl.decoder.JavaLayerException;
-import javazoom.jl.player.advanced.AdvancedPlayer;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.transcribestreaming.TranscribeStreamingAsyncClient;
@@ -75,15 +73,15 @@ public class LibrarySynchronizer {
         }
 
         for ( SongInfo info : songInfos ) {
-            int gap = (int) Float.parseFloat(info.getHeaderValue("gap"));
+            int gap = (int) Float.parseFloat(info.getHeaderValue("gap").replace(",","."));
             float bpm = Float.parseFloat(info.getHeaderValue("bpm").replace(",","."));
             int beat_duration = (int) (60 * 1000 / bpm);
 
             System.out.println("BPM: " + bpm + " (" + beat_duration + "ms)");
             System.out.println("Gap: " + gap + "ms (" + String.format("%.2f", gap/1000.0) + "s)");
 
-            NoteCollection collection = new NoteCollection(info.getNotes());
-            Note first = collection.getNotes().get(0);
+            SongNoteCollection collection = new SongNoteCollection(info.getNotes());
+            SongNote first = collection.getNotes().get(0);
             int offset = beat_duration * first.getBeat();
             System.out.println("First: " + first.getBeat() + " - " + offset + "ms (" + String.format("%.2f", offset/1000.0) + "s)");
 
@@ -94,15 +92,19 @@ public class LibrarySynchronizer {
         File audioFile = songInfos.get(0).getMP3();
 
         try (AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile)) {
-            AudioFormat format = ais.getFormat();
-            JVMAudioInputStream audioStream = new JVMAudioInputStream(ais);
+            AudioFormat sourceFormat = ais.getFormat();
+            AudioFormat targetFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, sourceFormat.getSampleRate(), 16, sourceFormat.getChannels(), sourceFormat.getChannels()*2, sourceFormat.getSampleRate(), true);
 
-            int bufferSize = 1024;
+            AudioInputStream cais = AudioSystem.getAudioInputStream(targetFormat, ais);
+            JVMAudioInputStream audioStream = new JVMAudioInputStream(cais);
+
+            int bufferSize = 4096;
             int overlap = 0;
             AudioDispatcher dispatcher = new AudioDispatcher(audioStream, bufferSize, overlap);
 
-            // add a processor
-            dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, format.getSampleRate(), bufferSize, (pitchDetectionResult, audioEvent) -> {
+            dispatcher.addAudioProcessor(new AudioPlayer(targetFormat));
+
+            dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.MPM, targetFormat.getSampleRate(), bufferSize, (pitchDetectionResult, audioEvent) -> {
                 if ( pitchDetectionResult.getPitch() == -1){
                     return;
                 }
@@ -111,11 +113,18 @@ public class LibrarySynchronizer {
                 float pitch = pitchDetectionResult.getPitch();
                 float probability = pitchDetectionResult.getProbability();
                 double rms = audioEvent.getRMS() * 100;
-                System.out.println(String.format("Pitch detected at %.2fs: %.2fHz ( %.2f probability, RMS: %.5f )\n", timeStamp,pitch,probability,rms));
+
+                System.out.println(String.format("Pitch detected at %.2fs: %.2fHz ( %.2f probability, RMS: %.5f )", timeStamp,pitch,probability,rms));
+
+                double log2 = Math.log(pitch / 440) / Math.log(2);
+                int note = (int) (69 + 12 * log2) - 33;
+                System.out.println("Note: " + note);
+
             }));
 
+
             dispatcher.run();
-        } catch (UnsupportedAudioFileException | IOException e) {
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             e.printStackTrace();
         }
 
