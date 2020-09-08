@@ -10,6 +10,9 @@ import be.tarsos.dsp.AudioDispatcher;
 import be.tarsos.dsp.io.jvm.AudioPlayer;
 import be.tarsos.dsp.io.jvm.JVMAudioInputStream;
 import be.tarsos.dsp.pitch.PitchProcessor;
+import javazoom.jl.decoder.JavaLayerException;
+import javazoom.jl.player.Player;
+import javazoom.jl.player.advanced.AdvancedPlayer;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.transcribestreaming.TranscribeStreamingAsyncClient;
@@ -17,24 +20,22 @@ import software.amazon.awssdk.services.transcribestreaming.model.*;
 
 import javax.sound.sampled.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class LibrarySynchronizer {
 
     private final File directory;
-    private final TranscribeStreamingAsyncClient transcribeStreamingClient;
+
+    private static final int MAX_NOTE_DEVIATION = 5;
+    private static final int MAX_TIME_DEVIATION = 500; // milliseconds
 
     public LibrarySynchronizer(File directory) {
         if ( !directory.isDirectory() ) {
             throw new IllegalArgumentException("File is not a directory.");
         }
         this.directory = directory;
-
-        transcribeStreamingClient = TranscribeStreamingAsyncClient.builder()
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .region(new DefaultAwsRegionProviderChain().getRegion())
-                .build();
     }
 
     public void run(boolean update) {
@@ -72,25 +73,21 @@ public class LibrarySynchronizer {
             return;
         }
 
-        for ( SongInfo info : songInfos ) {
-            int gap = (int) Float.parseFloat(info.getHeaderValue("gap").replace(",","."));
-            float bpm = Float.parseFloat(info.getHeaderValue("bpm").replace(",","."));
-            int beat_duration = (int) (60 * 1000 / bpm);
+        SongInfo mainInfo = songInfos.stream()
+                .filter(s -> !s.isDuet())
+                .findFirst()
+                .orElse(songInfos.get(0));
 
-            System.out.println("BPM: " + bpm + " (" + beat_duration + "ms)");
-            System.out.println("Gap: " + gap + "ms (" + String.format("%.2f", gap/1000.0) + "s)");
+        SongNoteCollection songNotes = new SongNoteCollection(mainInfo.getNotes());
 
-            SongNoteCollection collection = new SongNoteCollection(info.getNotes());
-            SongNote first = collection.getNotes().get(0);
-            int offset = beat_duration * first.getBeat();
-            System.out.println("First: " + first.getBeat() + " - " + offset + "ms (" + String.format("%.2f", offset/1000.0) + "s)");
+        int gap = mainInfo.containsHeader("gap") ? (int) Float.parseFloat(mainInfo.getHeaderValue("gap").replace(",", ".")) : 0;
+        float bpm = Float.parseFloat(mainInfo.getHeaderValue("bpm").replace(",","."));
+        float beatDuration = 60 * 1000f / bpm;
+        int maxBeatDeviation = Math.round((MAX_TIME_DEVIATION / beatDuration));
 
-            int totaloffset = gap + offset;
-            System.out.println("Calculated: " + (totaloffset) + "ms (" + String.format("%.2f", totaloffset/1000.0) + "s)");
-        }
+        SongNote first = songNotes.getNotes().get(0);
 
         File audioFile = songInfos.get(0).getMP3();
-
         try (AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile)) {
             AudioFormat sourceFormat = ais.getFormat();
             AudioFormat targetFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, sourceFormat.getSampleRate(), 16, sourceFormat.getChannels(), sourceFormat.getChannels()*2, sourceFormat.getSampleRate(), true);
@@ -98,14 +95,16 @@ public class LibrarySynchronizer {
             AudioInputStream cais = AudioSystem.getAudioInputStream(targetFormat, ais);
             JVMAudioInputStream audioStream = new JVMAudioInputStream(cais);
 
-            int bufferSize = 4096;
+            Map<Integer, Integer> measuredNotes = new HashMap<>();
+
+            int bufferSize = 1024;
             int overlap = 0;
             AudioDispatcher dispatcher = new AudioDispatcher(audioStream, bufferSize, overlap);
-
-            dispatcher.addAudioProcessor(new AudioPlayer(targetFormat));
-
             dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.MPM, targetFormat.getSampleRate(), bufferSize, (pitchDetectionResult, audioEvent) -> {
-                if ( pitchDetectionResult.getPitch() == -1){
+                if ( pitchDetectionResult.getPitch() == -1 ) {
+                    return;
+                }
+                if ( pitchDetectionResult.getProbability() < 0.80 ) {
                     return;
                 }
 
@@ -113,77 +112,43 @@ public class LibrarySynchronizer {
                 float pitch = pitchDetectionResult.getPitch();
                 float probability = pitchDetectionResult.getProbability();
                 double rms = audioEvent.getRMS() * 100;
-
-                System.out.println(String.format("Pitch detected at %.2fs: %.2fHz ( %.2f probability, RMS: %.5f )", timeStamp,pitch,probability,rms));
+                int beat = (int) (((timeStamp * 1000) - gap) / beatDuration);
 
                 double log2 = Math.log(pitch / 440) / Math.log(2);
                 int note = (int) (69 + 12 * log2) - 33;
-                System.out.println("Note: " + note);
+                measuredNotes.put(beat, note);
 
+                //System.out.println(String.format("Pitch detected at %.2fs: %.2fHz (%.2f probability, RMS: %.5f), note %d, beat %d", timeStamp, pitch, probability, rms, note, beat));
             }));
-
-
             dispatcher.run();
-        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+
+            int totalCheckedNotes = 0;
+            List<SongNote> correctNotes = new ArrayList<>();
+
+            for ( int beat : measuredNotes.keySet().stream().sorted().collect(Collectors.toList()) ) {
+                SongNote songNote = songNotes.getNoteAtBeat(beat, maxBeatDeviation);
+                if ( songNote == null || correctNotes.contains(songNote) ) {
+                    continue;
+                }
+                totalCheckedNotes++;
+
+                int note = measuredNotes.get(beat);
+                int noteDeviation = Math.abs(songNote.getNote() - note);
+                if ( noteDeviation > MAX_NOTE_DEVIATION ) {
+                    //System.out.println(String.format("WRONG note %d, beat %d - %d (measured note %d, beat %d)", songNote.getNote(), songNote.getBeat(), songNote.getBeat() + songNote.getLength(), note, beat));
+                    continue;
+                }
+
+                correctNotes.add(songNote);
+            }
+
+            float accuracy = correctNotes.size() / (float) totalCheckedNotes;
+            System.out.println(String.format("Total accuracy: %d/%d (%.2f)", correctNotes.size(), totalCheckedNotes, accuracy));
+
+        } catch (UnsupportedAudioFileException | IOException e) {
             e.printStackTrace();
         }
 
-        if ( true ) {
-            return;
-        }
-
-
-        try (AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile)) {
-            AudioFormat format = ais.getFormat();
-            AudioStreamPublisher requestStream = new AudioStreamPublisher(ais);
-
-//            AdvancedPlayer player = new AdvancedPlayer(ais,
-//                    javazoom.jl.player.FactoryRegistry.systemRegistry().createAudioDevice());
-//
-//            player.play();
-
-            // create request
-            StartStreamTranscriptionRequest request = StartStreamTranscriptionRequest.builder()
-                    .languageCode(LanguageCode.EN_US.toString())
-                    .mediaEncoding(MediaEncoding.PCM)
-                    .mediaSampleRateHertz((int) format.getSampleRate())
-                    .build();
-
-            System.out.println("Checking audio file...");
-
-            // create response handler
-            StartStreamTranscriptionResponseHandler response = getResponseHandler();
-
-            // start stream
-            transcribeStreamingClient.startStreamTranscription(request, requestStream, response).join();
-        } catch (IOException | UnsupportedAudioFileException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private StartStreamTranscriptionResponseHandler getResponseHandler() {
-        return StartStreamTranscriptionResponseHandler.builder()
-                .onResponse(r -> {
-                    System.out.println("Received Initial response");
-                })
-                .onError(e -> {
-                    System.out.println(e.getMessage());
-                    StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
-                    System.out.println("Error Occurred: " + sw.toString());
-                })
-                .onComplete(() -> {
-                    System.out.println("=== All records stream successfully ===");
-                })
-                .subscriber(event -> {
-                    List<Result> results = ((TranscriptEvent) event).transcript().results();
-                    if (results.size() > 0) {
-                        if (!results.get(0).alternatives().get(0).transcript().isEmpty()) {
-                            System.out.println(results.get(0).alternatives().get(0).transcript());
-                        }
-                    }
-                })
-                .build();
     }
 
 }

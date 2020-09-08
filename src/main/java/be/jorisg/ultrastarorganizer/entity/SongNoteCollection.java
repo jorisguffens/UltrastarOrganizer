@@ -1,7 +1,12 @@
 package be.jorisg.ultrastarorganizer.entity;
 
+import software.amazon.awssdk.services.securityhub.model.Note;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SongNoteCollection {
 
@@ -18,6 +23,22 @@ public class SongNoteCollection {
 
     public List<SongNote> getNotes() {
         return notes;
+    }
+
+    public List<SongNote> getRealNotes() {
+        return notes.stream().filter(n -> n.getType() != SongNote.NoteType.BREAK).collect(Collectors.toList());
+    }
+
+    public SongNote getNoteAtBeat(int beat, int maxDeviation) {
+        SongNote bestMatch = null;
+        for ( SongNote n : getRealNotes() ) {
+            if ( beat > n.getBeat() && beat < n.getBeat() + n.getLength() ) {
+                return n;
+            } else if ( beat > n.getBeat() - maxDeviation && beat < n.getBeat() + n.getLength() + maxDeviation ) {
+                bestMatch = n;
+            }
+        }
+        return bestMatch;
     }
 
     public void shift(int amount) {

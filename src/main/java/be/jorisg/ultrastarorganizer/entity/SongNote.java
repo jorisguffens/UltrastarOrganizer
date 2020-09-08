@@ -10,7 +10,7 @@ public class SongNote {
     private int beat;
 
     private int length;
-    private int tone;
+    private int note;
     private String text;
 
     public SongNote(String line) {
@@ -22,7 +22,7 @@ public class SongNote {
         }
 
         length = Integer.parseInt(args[2]);
-        tone = Integer.parseInt(args[3]);
+        note = Integer.parseInt(args[3]);
         text = String.join(" ", Arrays.copyOfRange(args, 4, args.length));
     }
 
@@ -31,7 +31,7 @@ public class SongNote {
         if ( type == NoteType.BREAK ) {
             return type.key + " " + beat;
         }
-        return type.key + " " + beat + " " + length + " " + tone + " " + text;
+        return type.key + " " + beat + " " + length + " " + note + " " + text;
     }
 
     public NoteType getType() {
@@ -58,12 +58,12 @@ public class SongNote {
         this.length = length;
     }
 
-    public int getTone() {
-        return tone;
+    public int getNote() {
+        return note;
     }
 
-    public void setTone(int tone) {
-        this.tone = tone;
+    public void setNote(int note) {
+        this.note = note;
     }
 
     public String getText() {
