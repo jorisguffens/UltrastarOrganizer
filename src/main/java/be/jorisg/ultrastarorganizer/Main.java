@@ -1,7 +1,6 @@
 package be.jorisg.ultrastarorganizer;
 
 import be.jorisg.ultrastarorganizer.organizer.LibraryOrganizer;
-import be.jorisg.ultrastarorganizer.synchronizer.LibrarySynchronizer;
 import be.jorisg.ultrastarorganizer.utils.TableList;
 import org.apache.commons.cli.*;
 
@@ -37,10 +36,6 @@ public class Main {
         createCSVInput.setRequired(false);
         options.addOption(createCSVInput);
 
-        Option syncInput = new Option("cla", "check-lyrics-alignment", false, "check if the lyrics align with the audio file");
-        syncInput.setRequired(false);
-        options.addOption(syncInput);
-
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -71,16 +66,6 @@ public class Main {
         LibraryOrganizer organizer = new LibraryOrganizer(dir);
         organizer.run(createCSV, convertAudio, background2cover, removeVideo, cleanCaches);
         System.out.println("\n\n");
-
-
-        String sync = cmd.getOptionValue("synchronize");
-        if ( sync != null && (sync.equals("search") || sync.equals("update")) ) {
-            System.out.println("Synchronizing lyrics...");
-            LibrarySynchronizer synchronizer = new LibrarySynchronizer(dir);
-            synchronizer.run(sync.equals("update"));
-            System.out.println("\n\n");
-        }
-
 
         TableList tl = new TableList(2, "CODE", "Description").sortBy(0);
         tl.addRow("0", "Can't find any info (.txt) files.");
