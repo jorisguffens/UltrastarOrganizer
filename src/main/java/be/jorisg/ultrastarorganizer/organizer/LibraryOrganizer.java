@@ -33,7 +33,7 @@ public class LibraryOrganizer {
         this.directory = directory;
     }
 
-    public void run(boolean createCSV, boolean convertAudio, boolean removeVideo, boolean cleanCaches) {
+    public void run(boolean createCSV, boolean convertAudio, boolean background2cover, boolean removeVideo, boolean cleanCaches) {
         List<SongInfo> songInfos = new ArrayList<>();
 
         File[] files = directory.listFiles();
@@ -46,7 +46,7 @@ public class LibraryOrganizer {
             System.out.println("Processing directory " + (i + 1) + " of " + files.length + ": " + songDir.getName() + "");
 
             try {
-                List<SongInfo> infos = process(songDir, convertAudio, removeVideo, cleanCaches);
+                List<SongInfo> infos = process(songDir, convertAudio, background2cover, removeVideo, cleanCaches);
                 songInfos.addAll(infos);
             } catch (LibraryException e) {
                 try {
@@ -88,7 +88,7 @@ public class LibraryOrganizer {
         }
     }
 
-    private List<SongInfo> process(File dir, boolean convertAudio, boolean removeVideo, boolean cleanCaches) throws IOException, LibraryException {
+    private List<SongInfo> process(File dir, boolean convertAudio, boolean background2cover, boolean removeVideo, boolean cleanCaches) throws IOException, LibraryException {
         List<File> txtFiles = getFilesByExtensions(dir, "txt");
         if ( txtFiles.isEmpty() ) {
             throw new LibraryException(0, "No song info (.txt) found.");
@@ -131,7 +131,7 @@ public class LibraryOrganizer {
         }
 
         // video
-        List<File> videoFiles = getFilesByExtensions(dir, "mp4", "avi", "mkv", "flv", "mov", "mpg");
+        List<File> videoFiles = getFilesByExtensions(dir, "mp4", "avi", "mkv", "flv", "mov", "mpg", "m4v", "divx");
         if ( mainInfo.getVideo() != null ) {
             video = mainInfo.getVideo();
         } else {
@@ -141,7 +141,7 @@ public class LibraryOrganizer {
         }
 
         // cover
-        List<File> imageFiles = getFilesByExtensions(dir, "jpg", "png").stream().filter(this::validateImage).collect(Collectors.toList());
+        List<File> imageFiles = getFilesByExtensions(dir, "jpg", "png", "jpeg").stream().filter(this::validateImage).collect(Collectors.toList());
         if ( mainInfo.getCover() != null ) {
             cover = mainInfo.getCover();
         } else {
@@ -163,6 +163,11 @@ public class LibraryOrganizer {
                     break;
                 }
             }
+        }
+
+        if ( background2cover && cover == null && background != null ) {
+            cover = background;
+            background = null;
         }
 
         String filename = mainInfo.getFileName();

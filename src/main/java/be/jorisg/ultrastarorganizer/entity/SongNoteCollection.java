@@ -1,11 +1,7 @@
 package be.jorisg.ultrastarorganizer.entity;
 
-import software.amazon.awssdk.services.securityhub.model.Note;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SongNoteCollection {

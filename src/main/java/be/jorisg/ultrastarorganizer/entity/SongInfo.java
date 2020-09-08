@@ -41,7 +41,7 @@ public class SongInfo {
         }
 
         for ( int i = 0; i < lines.size(); i++ ) {
-            String line = lines.get(i).trim();
+            String line = lines.get(i);
             line = Normalizer.normalize(line, Normalizer.Form.NFD);
             line = line.replaceAll("[^\\p{ASCII}]", "");
             lines.set(i, line);

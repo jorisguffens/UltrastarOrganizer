@@ -23,7 +23,8 @@ public class SongNote {
 
         length = Integer.parseInt(args[2]);
         note = Integer.parseInt(args[3]);
-        text = String.join(" ", Arrays.copyOfRange(args, 4, args.length));
+        String prefix = type.key + " " + beat + " " + length + " " + note + " ";
+        text = line.substring(prefix.length());
     }
 
     @Override

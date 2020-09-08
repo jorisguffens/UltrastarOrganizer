@@ -21,6 +21,10 @@ public class Main {
         convertVideoToAudioInput.setRequired(false);
         options.addOption(convertVideoToAudioInput);
 
+        Option backgroundToCoverInput = new Option("b2c", "background-to-cover", false, "change background files to cover files");
+        backgroundToCoverInput.setRequired(false);
+        options.addOption(backgroundToCoverInput);
+
         Option removeVideoInput = new Option("rv", "remove-video", false, "remove video files");
         removeVideoInput.setRequired(false);
         options.addOption(removeVideoInput);
@@ -52,6 +56,7 @@ public class Main {
 
         String directory = cmd.getOptionValue("directory");
         boolean convertAudio = cmd.hasOption("convert-video-to-audio");
+        boolean background2cover = cmd.hasOption("background-to-cover");
         boolean removeVideo = cmd.hasOption("remove-video");
         boolean cleanCaches = cmd.hasOption("clean-caches");
         boolean createCSV = cmd.hasOption("create-csv");
@@ -64,7 +69,7 @@ public class Main {
 
         System.out.println("Organizing library...");
         LibraryOrganizer organizer = new LibraryOrganizer(dir);
-        organizer.run(createCSV, convertAudio, removeVideo, cleanCaches);
+        organizer.run(createCSV, convertAudio, background2cover, removeVideo, cleanCaches);
         System.out.println("\n\n");
 
 
