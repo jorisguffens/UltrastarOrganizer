@@ -17,19 +17,23 @@ public class Main {
         directoryInput.setRequired(true);
         options.addOption(directoryInput);
 
-        Option convertAudioInput = new Option("ca", "convertaudio", false, "convert video to mp3 if no mp3s are found");
-        convertAudioInput.setRequired(false);
-        options.addOption(convertAudioInput);
+        Option convertVideoToAudioInput = new Option("cva", "convert-video-to-audio", false, "convert video to mp3 if no mp3s are found");
+        convertVideoToAudioInput.setRequired(false);
+        options.addOption(convertVideoToAudioInput);
 
-        Option removeVideoInput = new Option("rv", "removevideo", false, "remove video files");
+        Option removeVideoInput = new Option("rv", "remove-video", false, "remove video files");
         removeVideoInput.setRequired(false);
         options.addOption(removeVideoInput);
 
-        Option cleanCachesInput = new Option("cc", "cleancaches", false, "clean cache files");
+        Option cleanCachesInput = new Option("cc", "clean-caches", false, "clean cache files");
         cleanCachesInput.setRequired(false);
         options.addOption(cleanCachesInput);
 
-        Option syncInput = new Option("s", "synchronize", true, "off,search,update");
+        Option createCSVInput = new Option("csv", "create-csv", false, "create csv file");
+        createCSVInput.setRequired(false);
+        options.addOption(createCSVInput);
+
+        Option syncInput = new Option("cla", "check-lyrics-alignment", false, "check if the lyrics align with the audio file");
         syncInput.setRequired(false);
         options.addOption(syncInput);
 
@@ -47,9 +51,10 @@ public class Main {
         }
 
         String directory = cmd.getOptionValue("directory");
-        boolean convertAudio = cmd.hasOption("convertaudio");
-        boolean removeVideo = cmd.hasOption("removevideo");
-        boolean cleanCaches = cmd.hasOption("cleancaches");
+        boolean convertAudio = cmd.hasOption("convert-video-to-audio");
+        boolean removeVideo = cmd.hasOption("remove-video");
+        boolean cleanCaches = cmd.hasOption("clean-caches");
+        boolean createCSV = cmd.hasOption("create-csv");
 
         File dir = new File(directory);
         if ( !dir.exists() ) {
@@ -59,7 +64,7 @@ public class Main {
 
         System.out.println("Organizing library...");
         LibraryOrganizer organizer = new LibraryOrganizer(dir);
-        organizer.run(convertAudio, removeVideo, cleanCaches);
+        organizer.run(createCSV, convertAudio, removeVideo, cleanCaches);
         System.out.println("\n\n");
 
 

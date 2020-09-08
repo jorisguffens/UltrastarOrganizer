@@ -3,17 +3,22 @@ package be.jorisg.ultrastarorganizer.organizer;
 import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import be.jorisg.ultrastarorganizer.entity.SongFiles;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
+import be.jorisg.ultrastarorganizer.exceptions.LibraryException;
 import it.sauronsoftware.jave.AudioAttributes;
 import it.sauronsoftware.jave.Encoder;
 import it.sauronsoftware.jave.EncoderException;
 import it.sauronsoftware.jave.EncodingAttributes;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.Tika;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,25 +33,65 @@ public class LibraryOrganizer {
         this.directory = directory;
     }
 
-    public void run(boolean convertAudio, boolean removeVideo, boolean cleanCaches) {
+    public void run(boolean createCSV, boolean convertAudio, boolean removeVideo, boolean cleanCaches) {
+        List<SongInfo> songInfos = new ArrayList<>();
+
         File[] files = directory.listFiles();
-        for ( int i = 0; i < files.length; i++ ) {
+        for (int i = 0; i < files.length; i++) {
+            File songDir = files[i];
+            if ( !songDir.isDirectory() ) {
+                continue;
+            }
+
+            System.out.println("Processing directory " + (i + 1) + " of " + files.length + ": " + songDir.getName() + "");
+
             try {
-                File songDir = files[i];
-                System.out.println("Processing directory " + (i+1) + " of " + files.length + ": " + songDir.getName() + "");
-                process(songDir, convertAudio, removeVideo, cleanCaches);
-            } catch (Exception e) {
+                List<SongInfo> infos = process(songDir, convertAudio, removeVideo, cleanCaches);
+                songInfos.addAll(infos);
+            } catch (LibraryException e) {
+                try {
+                    renameDirectory(songDir, new File(songDir.getParent(), "[ERR" + e.getCode() + "] "
+                            + songDir.getName().replaceFirst("(\\[ERR[0-9]*\\])", "").trim()));
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+            } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+
+        if ( createCSV ) {
+            File csvOutputFile = new File(directory, "songs.csv");
+            PrintWriter pw = null;
+            try {
+                if (!csvOutputFile.exists()) {
+                    csvOutputFile.createNewFile();
+                }
+
+                pw = new PrintWriter(csvOutputFile);
+                CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader("Artist", "Title"));
+
+                for ( SongInfo info : songInfos ) {
+                    String title = info.getTitle();
+                    if (info.isDuet() && !title.toLowerCase().contains("duet")) {
+                        title += " (Duet)";
+                    }
+                    printer.printRecord(info.getArtist(), title);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (pw != null) {
+                    pw.close();
+                }
             }
         }
     }
 
-    private void process(File dir, boolean convertAudio, boolean removeVideo, boolean cleanCaches) throws IOException {
+    private List<SongInfo> process(File dir, boolean convertAudio, boolean removeVideo, boolean cleanCaches) throws IOException, LibraryException {
         List<File> txtFiles = getFilesByExtensions(dir, "txt");
         if ( txtFiles.isEmpty() ) {
-            System.out.println("No song info (.txt) found.");
-            errorDirectory(dir, 0);
-            return;
+            throw new LibraryException(0, "No song info (.txt) found.");
         }
 
         List<SongInfo> songInfos = new ArrayList<>();
@@ -54,13 +99,11 @@ public class LibraryOrganizer {
             try {
                 SongInfo info = new SongInfo(file);
                 songInfos.add(info);
-            } catch (InvalidSongInfoFileException e) {}
+            } catch (InvalidSongInfoFileException ignored) {}
         }
 
         if ( songInfos.isEmpty() ) {
-            System.out.println("No valid song info files (.txt) found.");
-            errorDirectory(dir, 1);
-            return;
+            throw new LibraryException(1, "No valid song info files (.txt) found.");
         }
 
         SongInfo mainInfo = songInfos.stream()
@@ -79,9 +122,7 @@ public class LibraryOrganizer {
         } else {
             List<File> audioFiles = getFilesByExtensions(dir, "mp3").stream().filter(this::validateMP3).collect(Collectors.toList());
             if ( audioFiles.size() > 1 ) {
-                System.out.println("Can't select correct audio file.");
-                errorDirectory(dir, 2);
-                return;
+                throw new LibraryException(0, "Can't select correct audio file.");
             }
 
             if ( !audioFiles.isEmpty() ) {
@@ -128,15 +169,11 @@ public class LibraryOrganizer {
 
         if ( mp3 == null ) {
             if ( !convertAudio ) {
-                System.out.println("No audio file found.");
-                errorDirectory(dir, 3);
-                return;
+                throw new LibraryException(3, "No audio file found.");
             }
 
             if ( videoFiles.isEmpty() ) {
-                System.out.println("No audio and video file found.");
-                errorDirectory(dir, 3);
-                return;
+                throw new LibraryException(3, "No audio and video file found.");
             }
 
             System.out.println("Converting video file to mp3...");
@@ -171,14 +208,14 @@ public class LibraryOrganizer {
             info.save();
 
             String fname = info.getFileName();
-            if ( info.isDuet() && !fname.toLowerCase().contains("duet") ) {
+            if (info.isDuet() && !fname.toLowerCase().contains("duet")) {
                 fname += " (Duet)";
             }
 
             File target = new File(dir, fname + ".txt");
 
             int i = 1;
-            while ( target.exists() && !info.getFile().equals(target) ) {
+            while (target.exists() && !info.getFile().equals(target)) {
                 target = new File(dir, fname + " (" + i + ").txt");
                 i++;
             }
@@ -188,6 +225,8 @@ public class LibraryOrganizer {
         if ( !dir.getName().equals(filename) ) {
             renameDirectory(dir, new File(dir.getParent(), filename));
         }
+
+        return songInfos;
     }
 
     private List<File> getFilesByExtensions(File directory, String... extensions) {
@@ -202,11 +241,6 @@ public class LibraryOrganizer {
             }
         }
         return result;
-    }
-
-    private void errorDirectory(File songDir, int code) throws IOException {
-        renameDirectory(songDir, new File(songDir.getParent(), "[ERR" + code + "] "
-                + songDir.getName().replaceFirst("(\\[ERR[0-9]*\\])", "").trim()));
     }
 
     private void renameDirectory(File source, File dest) throws IOException {
