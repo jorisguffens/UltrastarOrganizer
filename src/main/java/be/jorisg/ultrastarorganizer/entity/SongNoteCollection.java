@@ -1,5 +1,7 @@
 package be.jorisg.ultrastarorganizer.entity;
 
+import be.jorisg.ultrastarorganizer.exceptions.InvalidSongNoteException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,7 +15,16 @@ public class SongNoteCollection {
             if ( line.startsWith("E") ) {
                 break;
             }
-            notes.add(new SongNote(line));
+            if ( line.trim().equals("") ) {
+                continue;
+            }
+            try {
+                notes.add(new SongNote(line));
+            } catch (InvalidSongNoteException ignored) {
+            } catch (Exception ex) {
+                System.out.println(line);
+                throw ex;
+            }
         }
     }
 

@@ -1,5 +1,7 @@
 package be.jorisg.ultrastarorganizer.entity;
 
+import be.jorisg.ultrastarorganizer.exceptions.InvalidSongNoteException;
+
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
@@ -13,9 +15,13 @@ public class SongNote {
     private int note;
     private String text;
 
-    public SongNote(String line) {
+    public SongNote(String line) throws InvalidSongNoteException {
         String[] args = line.split(Pattern.quote(" "));
         type = NoteType.fromKey(args[0]);
+        if ( type == null ) {
+            throw new InvalidSongNoteException("Invalid type");
+        }
+
         beat = Integer.parseInt(args[1]);
         if ( type == NoteType.BREAK ) {
             return;
@@ -23,8 +29,13 @@ public class SongNote {
 
         length = Integer.parseInt(args[2]);
         note = Integer.parseInt(args[3]);
+
         String prefix = type.key + " " + beat + " " + length + " " + note + " ";
-        text = line.substring(prefix.length());
+        if ( line.length() != prefix.length()-1 ) {
+            text = line.substring(prefix.length());
+        } else {
+            text = "";
+        }
     }
 
     @Override
