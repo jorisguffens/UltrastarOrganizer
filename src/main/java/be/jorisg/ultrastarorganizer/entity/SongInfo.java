@@ -3,7 +3,10 @@ package be.jorisg.ultrastarorganizer.entity;
 import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import org.apache.any23.encoding.TikaEncodingDetector;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -98,7 +101,7 @@ public class SongInfo {
             return null;
         }
         File f = new File(infoFile.getParent(), value);
-        return f.exists() && f.isFile() && f.exists() ? f : null;
+        return f.exists() && f.isFile() ? f : null;
     }
 
     public boolean isDuet() {

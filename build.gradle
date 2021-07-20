@@ -1,0 +1,40 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    implementation 'info.picocli:picocli:4.6.1'
+
+    implementation 'commons-io:commons-io:2.6'
+    implementation 'org.apache.any23:apache-any23-encoding:1.1'
+    implementation 'org.apache.commons:commons-csv:1.4'
+
+    implementation 'org.odftoolkit:odfdom-java:0.8.7'
+
+    // http://www.sauronsoftware.it/projects/jave/download.php
+    implementation name: 'jave-1.0.2'
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'be.jorisg.ultrastarorganizer.Main'
+        )
+    }
+}

@@ -1,8 +1,8 @@
 package be.jorisg.ultrastarorganizer.organizer;
 
-import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import be.jorisg.ultrastarorganizer.entity.SongFiles;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
+import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import be.jorisg.ultrastarorganizer.exceptions.LibraryException;
 import it.sauronsoftware.jave.AudioAttributes;
 import it.sauronsoftware.jave.Encoder;
@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,8 +68,9 @@ public class LibraryOrganizer {
                 }
 
                 pw = new PrintWriter(csvOutputFile);
-                CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader("Artist", "Title"));
+                pw.write("SEP=,\n");
 
+                CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader("Artist", "Title"));
                 for ( SongInfo info : songInfos ) {
                     String title = info.getTitle();
                     if (info.isDuet() && !title.toLowerCase().contains("duet")) {

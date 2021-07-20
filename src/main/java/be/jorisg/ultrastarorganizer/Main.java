@@ -1,78 +1,48 @@
 package be.jorisg.ultrastarorganizer;
 
-import be.jorisg.ultrastarorganizer.organizer.LibraryOrganizer;
-import be.jorisg.ultrastarorganizer.utils.TableList;
-import org.apache.commons.cli.*;
+import be.jorisg.ultrastarorganizer.commands.Minimize;
+import be.jorisg.ultrastarorganizer.commands.PurgeCaches;
+import be.jorisg.ultrastarorganizer.commands.Reformat;
+import be.jorisg.ultrastarorganizer.commands.SongList;
+import picocli.CommandLine;
 
-import java.io.File;
+import java.util.Arrays;
 
 public class Main {
 
     public static void main(String[] args) {
-
-        Options options = new Options();
-
-        Option directoryInput = new Option("d", "directory", true, "songs directory");
-        directoryInput.setRequired(true);
-        options.addOption(directoryInput);
-
-        Option convertVideoToAudioInput = new Option("cva", "convert-video-to-audio", false, "convert video to mp3 if no mp3s are found");
-        convertVideoToAudioInput.setRequired(false);
-        options.addOption(convertVideoToAudioInput);
-
-        Option backgroundToCoverInput = new Option("b2c", "background-to-cover", false, "change background files to cover files");
-        backgroundToCoverInput.setRequired(false);
-        options.addOption(backgroundToCoverInput);
-
-        Option removeVideoInput = new Option("rv", "remove-video", false, "remove video files");
-        removeVideoInput.setRequired(false);
-        options.addOption(removeVideoInput);
-
-        Option cleanCachesInput = new Option("cc", "clean-caches", false, "clean cache files");
-        cleanCachesInput.setRequired(false);
-        options.addOption(cleanCachesInput);
-
-        Option createCSVInput = new Option("csv", "create-csv", false, "create csv file");
-        createCSVInput.setRequired(false);
-        options.addOption(createCSVInput);
-
-        CommandLineParser parser = new DefaultParser();
-        HelpFormatter formatter = new HelpFormatter();
-        CommandLine cmd;
-
-        try {
-            cmd = parser.parse(options, args);
-        } catch (ParseException e) {
-            System.out.println(e.getMessage());
-            formatter.printHelp("utility-name", options);
-            System.exit(1);
+        if ( args.length < 2 ) {
+            System.out.println("Usage: <command> <directory>");
+            System.out.println();
+            System.out.println("COMMANDS");
+            System.out.println("  purgecaches\t\tPurge all cache files inside a library.");
+            System.out.println("  reformat\t\tReformat song directories and update info files.");
+            System.out.println("  minimize\t\tMinimize library by removing video files and background images.");
+            System.out.println("  songlist\t\tGenerate a document with a list of all songs.");
+            System.out.println();
+            System.out.println("OPTIONS");
+            System.out.println("  <directory>\t\tUltrastar library directory.");
             return;
         }
 
-        String directory = cmd.getOptionValue("directory");
-        boolean convertAudio = cmd.hasOption("convert-video-to-audio");
-        boolean background2cover = cmd.hasOption("background-to-cover");
-        boolean removeVideo = cmd.hasOption("remove-video");
-        boolean cleanCaches = cmd.hasOption("clean-caches");
-        boolean createCSV = cmd.hasOption("create-csv");
+        String cmd = args[0];
+        String[] cmdArgs = Arrays.copyOfRange(args, 1, args.length);
 
-        File dir = new File(directory);
-        if ( !dir.exists() ) {
-            System.out.println("Path doesn't exist.");
-            return;
+        int exitCode = 0;
+        if ( cmd.equalsIgnoreCase("purgecaches") ) {
+            exitCode = new CommandLine(new PurgeCaches()).execute(cmdArgs);
+        }
+        else if ( cmd.equalsIgnoreCase("reformat") ) {
+            exitCode = new CommandLine(new Reformat()).execute(cmdArgs);
+        }
+        else if ( cmd.equalsIgnoreCase("minimize") ) {
+            exitCode = new CommandLine(new Minimize()).execute(cmdArgs);
+        }
+        else if ( cmd.equalsIgnoreCase("songlist") ) {
+            exitCode = new CommandLine(new SongList()).execute(cmdArgs);
         }
 
-        System.out.println("Organizing library...");
-        LibraryOrganizer organizer = new LibraryOrganizer(dir);
-        organizer.run(createCSV, convertAudio, background2cover, removeVideo, cleanCaches);
-        System.out.println("\n\n");
-
-        TableList tl = new TableList(2, "CODE", "Description").sortBy(0);
-        tl.addRow("0", "Can't find any info (.txt) files.");
-        tl.addRow("1", "Invalid info (.txt) file. It is corrupt or headers are missing.");
-        tl.addRow("2", "Too many audio files. It can't decide the correct one.");
-        tl.addRow("3", "No audio (.mp3) file. There is no audio file or the video can't be converted.");
-        tl.print();
+        System.exit(exitCode);
     }
 
 }

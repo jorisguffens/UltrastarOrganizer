@@ -1,4 +1,9 @@
+
+.gradle/
 .idea/
-lib/
-target/
 *.iml
+
+build/
+out/
+generated/
+libs/
