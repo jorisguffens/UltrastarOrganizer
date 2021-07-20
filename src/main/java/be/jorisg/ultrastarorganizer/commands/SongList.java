@@ -7,16 +7,14 @@ import org.apache.commons.csv.CSVPrinter;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.doc.table.OdfTable;
 import org.odftoolkit.odfdom.doc.table.OdfTableCell;
-import org.odftoolkit.odfdom.doc.table.OdfTableRow;
-import org.odftoolkit.odfdom.dom.OdfContentDom;
-import org.odftoolkit.odfdom.dom.attribute.fo.FoTextAlignAttribute;
 import org.odftoolkit.odfdom.dom.element.office.OfficeTextElement;
+import org.odftoolkit.odfdom.dom.element.style.StyleMasterPageElement;
 import org.odftoolkit.odfdom.dom.style.OdfStyleFamily;
 import org.odftoolkit.odfdom.dom.style.props.*;
 import org.odftoolkit.odfdom.incubator.doc.office.OdfOfficeStyles;
 import org.odftoolkit.odfdom.incubator.doc.style.OdfStyle;
+import org.odftoolkit.odfdom.incubator.doc.style.OdfStylePageLayout;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextHeading;
-import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
 import org.w3c.dom.Node;
 import picocli.CommandLine;
 
@@ -38,6 +36,8 @@ public class SongList implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
+        System.out.println("Detecting songs...");
+
         List<SongInfo> songInfos = new ArrayList<>();
         for (File songDir : directory.listFiles()) {
             if (!songDir.isDirectory()) {
@@ -51,6 +51,8 @@ public class SongList implements Callable<Integer> {
                 ex.printStackTrace();
             }
         }
+
+        System.out.println(songInfos.size() + " songs will be processed.");
 
         // GENERATE ADMINISTRATIVE CSV
         File csvOutputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "songlist.csv");
@@ -74,14 +76,23 @@ public class SongList implements Callable<Integer> {
             e.printStackTrace();
         }
 
-        System.out.println("Generated songlist csv for " + songInfos.size() + " songs!");
+        System.out.println("Generated csv song list.");
 
         // GENERATE STYLED DOCUMENT
         OdfTextDocument odt = OdfTextDocument.newTextDocument();
 
-        OdfContentDom dom = odt.getContentDom();
         OfficeTextElement root = odt.getContentRoot();
         OdfOfficeStyles styles = odt.getOrCreateDocumentStyles();
+
+        // Page layout
+        StyleMasterPageElement defaultPage = odt.getOfficeMasterStyles().getMasterPage("Standard");
+        String pageLayoutName = defaultPage.getStylePageLayoutNameAttribute();
+        OdfStylePageLayout pageLayoutStyle = defaultPage.getAutomaticStyles().getPageLayout(pageLayoutName);
+        pageLayoutStyle.setProperty(OdfPageLayoutProperties.Padding, "0");
+        pageLayoutStyle.setProperty(OdfPageLayoutProperties.MarginTop, "1.3cm");
+        pageLayoutStyle.setProperty(OdfPageLayoutProperties.MarginRight, "1.3cm");
+        pageLayoutStyle.setProperty(OdfPageLayoutProperties.MarginBottom, "1.3cm");
+        pageLayoutStyle.setProperty(OdfPageLayoutProperties.MarginLeft, "1.3cm");
 
         // cleanup
         Node childNode;
@@ -98,19 +109,27 @@ public class SongList implements Callable<Integer> {
         OdfStyle titleStyle = styles.newStyle("Title", OdfStyleFamily.Paragraph);
         titleStyle.setStyleDisplayNameAttribute("Title");
         titleStyle.setProperty(OdfTextProperties.FontFamily, "Arial");
-        titleStyle.setProperty(OdfTextProperties.FontSize, "36pt");
+        titleStyle.setProperty(OdfTextProperties.FontSize, "28pt");
         titleStyle.setProperty(OdfParagraphProperties.TextAlign, "center");
 
         // create title
         OdfTextHeading title = new OdfTextHeading(odt.getContentDom());
         title.addStyledContent("Title", "Ultrastar");
         root.appendChild(title);
+
+        odt.newParagraph();
         odt.newParagraph();
 
+        // create table style
+        OdfStyle tableStyle = styles.newStyle("Table", OdfStyleFamily.Table);
+        tableStyle.setStyleDisplayNameAttribute("Table");
+        tableStyle.setProperty(OdfTableProperties.Align, "center");
+
         // create table
-        OdfTable table = OdfTable.newTable(odt, songInfos.size() + 1, 3);
+        OdfTable table = OdfTable.newTable(odt, songInfos.size(), 3);
         table.getOdfElement().setStyleName("Table");
 
+        /*
         // create table header style
         OdfStyle tableHeaderStyle = styles.newStyle("Table_Header", OdfStyleFamily.TableCell);
         tableHeaderStyle.setStyleDisplayNameAttribute("Table Header");
@@ -129,14 +148,16 @@ public class SongList implements Callable<Integer> {
         OdfTableCell col2 = table.getCellByPosition(2, 0);
         col2.setStringValue("TITLE");
         col2.getOdfElement().setStyleName("Table_Header");
+         */
 
         // create table cell style
         OdfStyle tableCellStyle = styles.newStyle("Table_Cell", OdfStyleFamily.TableCell);
         tableCellStyle.setStyleDisplayNameAttribute("Table Cell");
         tableCellStyle.setProperty(OdfTableCellProperties.Border, "none");
         tableCellStyle.setProperty(OdfTextProperties.FontFamily, "Arial");
-        tableCellStyle.setProperty(OdfTableCellProperties.PaddingTop, "3pt");
-        tableCellStyle.setProperty(OdfTableCellProperties.PaddingBottom, "3pt");
+        tableCellStyle.setProperty(OdfTextProperties.FontSize, "10pt");
+        tableCellStyle.setProperty(OdfTableCellProperties.PaddingTop, "2pt");
+        tableCellStyle.setProperty(OdfTableCellProperties.PaddingBottom, "2pt");
         tableCellStyle.setProperty(OdfTableCellProperties.PaddingLeft, "10pt");
         tableCellStyle.setProperty(OdfTableCellProperties.PaddingRight, "10pt");
 
@@ -148,16 +169,16 @@ public class SongList implements Callable<Integer> {
         // table contents
         for (int i = 0; i < songInfos.size(); i++) {
             SongInfo si = songInfos.get(i);
-            table.getCellByPosition(0, i + 1).setStringValue(i + "");
-            table.getCellByPosition(1, i + 1).setStringValue(si.getArtist());
-            table.getCellByPosition(2, i + 1).setStringValue(si.getTitle());
+            table.getCellByPosition(0, i).setStringValue((i + 1) + "");
+            table.getCellByPosition(1, i).setStringValue(si.getArtist());
+            table.getCellByPosition(2, i).setStringValue(si.getTitle());
 
             for ( int j = 0; j < table.getColumnCount(); j++ ) {
-                table.getCellByPosition(j, i + 1).getOdfElement().setStyleName("Table_Cell");
+                table.getCellByPosition(j, i).getOdfElement().setStyleName("Table_Cell");
             }
 
             if ( i % 2 == 1 ) {
-                table.getRowByIndex(i + 1).getOdfElement().setStyleName("Table_Odd_Row");
+                table.getRowByIndex(i).getOdfElement().setStyleName("Table_Odd_Row");
             }
         }
 
@@ -165,7 +186,7 @@ public class SongList implements Callable<Integer> {
         File docOutputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "songlist.odt");
         odt.save(docOutputFile);
 
-        System.out.println("Generated songlist document for " + songInfos.size() + " songs!");
+        System.out.println("Generated document song list.");
 
         return 0;
     }
