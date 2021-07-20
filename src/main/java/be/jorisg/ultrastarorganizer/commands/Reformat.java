@@ -48,7 +48,7 @@ public class Reformat implements Callable<Integer> {
         return 0;
     }
 
-    private void process(File songDir) throws LibraryException, IOException {
+    public void process(File songDir) throws LibraryException, IOException {
         List<SongInfo> infoFiles = Utils.findInfoFiles(songDir);
         SongInfo main = Utils.getMainInfoFile(infoFiles);
 
