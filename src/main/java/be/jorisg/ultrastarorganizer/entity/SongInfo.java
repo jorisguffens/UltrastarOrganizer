@@ -45,7 +45,7 @@ public class SongInfo {
 
         for ( int i = 0; i < lines.size(); i++ ) {
             String line = lines.get(i);
-            line = Normalizer.normalize(line, Normalizer.Form.NFD);
+            line = Normalizer.normalize(line, Normalizer.Form.NFKC);
             line = line.replaceAll("[^\\p{ASCII}]", "");
             lines.set(i, line);
         }
@@ -162,7 +162,8 @@ public class SongInfo {
     }
 
     public String getFileName() {
-        String name = getArtist() + " - " + getTitle();
+        String name = getArtist().replace(",", " & ").replace("  ", " ")
+                + " - " + getTitle();
         name = name.replace("/", "-");
         name = name.replaceAll("[^\\p{ASCII}]", "");
         name = name.replaceAll("[?]|[.]$", ""); // illegal filename characters
