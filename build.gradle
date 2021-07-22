@@ -1,12 +1,13 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+//import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     id 'java'
     id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'org.cadixdev.licenser' version '0.6.1'
 }
 
-group 'org.example'
-version '1.0-SNAPSHOT'
+group 'be.jorisg.ultrastarorganizer'
+version '1.0'
 
 repositories {
     mavenCentral()
@@ -37,4 +38,10 @@ jar {
                 'Main-Class': 'be.jorisg.ultrastarorganizer.Main'
         )
     }
+    from 'LICENSE.txt'
+}
+
+license {
+    header = project.file('HEADER.txt')
+    include '**/*.java'
 }
