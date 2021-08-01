@@ -68,6 +68,11 @@ public class Automatch implements Callable<Integer> {
                 System.out.println("Processing directory " + (i + 1) + " of " +
                         files.length + ": " + songDir.getName() + "");
                 process(songDir);
+            } catch (LibraryException ex) {
+                System.out.println(ex.getMessage());
+                if ( !songDir.getName().startsWith("[ERROR]") ) {
+                    songDir.renameTo(new File(directory, "[ERROR] - " + songDir.getName()));
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -125,7 +130,7 @@ public class Automatch implements Callable<Integer> {
             return;
         }
 
-        System.out.println("No mp3 file found for " + songDir.getName() + ".");
+        throw new LibraryException("No mp3 file found for " + songDir.getName() + ".");
     }
 
 }

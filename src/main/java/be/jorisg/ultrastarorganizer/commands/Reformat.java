@@ -26,21 +26,15 @@
 package be.jorisg.ultrastarorganizer.commands;
 
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
-import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
+import be.jorisg.ultrastarorganizer.entity.SongNoteCollection;
 import be.jorisg.ultrastarorganizer.exceptions.LibraryException;
 import be.jorisg.ultrastarorganizer.utils.Utils;
-import it.sauronsoftware.jave.AudioAttributes;
-import it.sauronsoftware.jave.Encoder;
-import it.sauronsoftware.jave.EncoderException;
-import it.sauronsoftware.jave.EncodingAttributes;
-import jdk.jshell.execution.Util;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -65,6 +59,11 @@ public class Reformat implements Callable<Integer> {
                 System.out.println("Processing directory " + (i + 1) + " of " +
                         files.length + ": " + songDir.getName() + "");
                 process(songDir);
+            } catch (LibraryException ex) {
+                System.out.println(ex.getMessage());
+                if ( !songDir.getName().startsWith("[ERROR]") ) {
+                    songDir.renameTo(new File(directory, "[ERROR] - " + songDir.getName()));
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -74,7 +73,7 @@ public class Reformat implements Callable<Integer> {
     }
 
     public void process(File songDir) throws LibraryException, IOException {
-        List<SongInfo> infoFiles = Utils.findInfoFiles(songDir);
+        List<SongInfo> infoFiles = Utils.getInfoFiles(songDir);
         SongInfo main = Utils.getMainInfoFile(infoFiles);
 
         // find missing mp3 file
@@ -82,7 +81,7 @@ public class Reformat implements Callable<Integer> {
             List<File> audioFiles = Utils.getFilesByExtensions(songDir, "mp3").stream()
                     .filter(Utils::validateMP3).collect(Collectors.toList());
             if ( audioFiles.size() > 1 ) {
-                throw new LibraryException(0, "Can't select correct audio file.");
+                throw new LibraryException("Can't select correct audio file.");
             }
 
             if ( !audioFiles.isEmpty() ) {
@@ -126,6 +125,14 @@ public class Reformat implements Callable<Integer> {
                 main.setBackground(f);
                 break;
             }
+        }
+
+        // fix negative lyrics start
+        SongNoteCollection snc = new SongNoteCollection(main.getNotes());
+        int beat = snc.getNotes().get(0).getBeat();
+        if ( beat < 0 ) {
+            snc.shift(Math.abs(beat));
+            main.setNotes(snc.getLines());
         }
 
         // update all info files

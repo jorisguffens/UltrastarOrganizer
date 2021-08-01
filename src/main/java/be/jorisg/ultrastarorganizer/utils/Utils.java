@@ -78,7 +78,7 @@ public class Utils {
     }
 
     public static SongInfo getMainInfoFile(File songDir) throws LibraryException {
-        return getMainInfoFile(findInfoFiles(songDir));
+        return getMainInfoFile(getInfoFiles(songDir));
     }
 
     public static SongInfo getMainInfoFile(List<SongInfo> infoFiles) {
@@ -86,10 +86,10 @@ public class Utils {
                 .orElseGet(() -> infoFiles.get(0));
     }
 
-    public static List<SongInfo> findInfoFiles(File songDir) throws LibraryException {
+    public static List<SongInfo> getInfoFiles(File songDir) throws LibraryException {
         List<File> txtFiles = Utils.getFilesByExtensions(songDir, "txt");
         if ( txtFiles.isEmpty() ) {
-            throw new LibraryException(0, "No song info (.txt) found.");
+            throw new LibraryException("No song info (.txt) found.");
         }
 
         List<SongInfo> infos = new ArrayList<>();
@@ -97,11 +97,13 @@ public class Utils {
             try {
                 SongInfo info = new SongInfo(file);
                 infos.add(info);
-            } catch (InvalidSongInfoFileException ignored) {}
+            } catch (InvalidSongInfoFileException ex) {
+                System.out.println(ex.getMessage());
+            }
         }
 
         if ( infos.isEmpty() ) {
-            throw new LibraryException(1, "No valid song info files (.txt) found.");
+            throw new LibraryException("No valid song info files (.txt) found.");
         }
 
         return infos;

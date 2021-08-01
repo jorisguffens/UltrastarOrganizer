@@ -41,6 +41,7 @@ public class SongNote {
     private String text;
 
     public SongNote(String line) throws InvalidSongNoteException {
+        line = line.replaceAll(Pattern.quote("\t"), " ");
         String[] args = line.split(Pattern.quote(" "));
         type = NoteType.fromKey(args[0]);
         if ( type == null ) {

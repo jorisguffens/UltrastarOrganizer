@@ -26,7 +26,6 @@
 package be.jorisg.ultrastarorganizer.commands;
 
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
-import be.jorisg.ultrastarorganizer.exceptions.InvalidSongInfoFileException;
 import be.jorisg.ultrastarorganizer.exceptions.LibraryException;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import it.sauronsoftware.jave.AudioAttributes;
@@ -37,7 +36,6 @@ import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -62,6 +60,11 @@ public class Minimize implements Callable<Integer> {
                 System.out.println("Processing directory " + (i + 1) + " of " +
                         files.length + ": " + songDir.getName() + "");
                 process(songDir);
+            } catch (LibraryException ex) {
+                System.out.println(ex.getMessage());
+                if ( !songDir.getName().startsWith("[ERROR]") ) {
+                    songDir.renameTo(new File(directory, "[ERROR] - " + songDir.getName()));
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -71,7 +74,7 @@ public class Minimize implements Callable<Integer> {
     }
 
     private void process(File songDir) throws LibraryException {
-        List<SongInfo> infoFiles = Utils.findInfoFiles(songDir);
+        List<SongInfo> infoFiles = Utils.getInfoFiles(songDir);
         SongInfo main = Utils.getMainInfoFile(infoFiles);
 
         String filename = main.getFileName();

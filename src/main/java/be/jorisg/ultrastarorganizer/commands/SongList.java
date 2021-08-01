@@ -31,7 +31,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.doc.table.OdfTable;
-import org.odftoolkit.odfdom.doc.table.OdfTableCell;
 import org.odftoolkit.odfdom.dom.element.office.OfficeTextElement;
 import org.odftoolkit.odfdom.dom.element.style.StyleMasterPageElement;
 import org.odftoolkit.odfdom.dom.style.OdfStyleFamily;
@@ -70,8 +69,7 @@ public class SongList implements Callable<Integer> {
             }
 
             try {
-                SongInfo info = Utils.getMainInfoFile(songDir);
-                songInfos.add(info);
+                songInfos.addAll(Utils.getInfoFiles(songDir));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -153,27 +151,6 @@ public class SongList implements Callable<Integer> {
         // create table
         OdfTable table = OdfTable.newTable(odt, songInfos.size(), 3);
         table.getOdfElement().setStyleName("Table");
-
-        /*
-        // create table header style
-        OdfStyle tableHeaderStyle = styles.newStyle("Table_Header", OdfStyleFamily.TableCell);
-        tableHeaderStyle.setStyleDisplayNameAttribute("Table Header");
-        tableHeaderStyle.setProperty(OdfTableCellProperties.Border, "none");
-        tableHeaderStyle.setProperty(OdfTextProperties.FontWeight, "bold");
-        tableHeaderStyle.setProperty(OdfTextProperties.FontFamily, "Arial");
-        tableHeaderStyle.setProperty(OdfParagraphProperties.TextAlign, "center");
-
-        // table titles
-        table.getCellByPosition(0, 0).getOdfElement().setStyleName("Table_Header");
-
-        OdfTableCell col1 = table.getCellByPosition(1, 0);
-        col1.setStringValue("ARTIST");
-        col1.getOdfElement().setStyleName("Table_Header");
-
-        OdfTableCell col2 = table.getCellByPosition(2, 0);
-        col2.setStringValue("TITLE");
-        col2.getOdfElement().setStyleName("Table_Header");
-         */
 
         // create table cell style
         OdfStyle tableCellStyle = styles.newStyle("Table_Cell", OdfStyleFamily.TableCell);
