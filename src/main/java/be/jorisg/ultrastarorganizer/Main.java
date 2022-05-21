@@ -57,6 +57,9 @@ public class Main {
         else if ( cmd.equalsIgnoreCase("automatch") ) {
             exitCode = new CommandLine(new Automatch()).execute(cmdArgs);
         }
+        else if ( cmd.equalsIgnoreCase("covers") ) {
+            exitCode = new CommandLine(new Covers()).execute(cmdArgs);
+        }
         else {
             sendHelp();
         }
