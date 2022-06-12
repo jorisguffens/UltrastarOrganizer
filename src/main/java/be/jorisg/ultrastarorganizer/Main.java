@@ -33,6 +33,10 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String[] args) {
+        String path = Main.class.getClassLoader()
+                .getResource("logging.properties").getFile();
+        System.setProperty("java.util.logging.config.file", path);
+
         if ( args.length < 2 ) {
             sendHelp();
             return;
@@ -51,14 +55,17 @@ public class Main {
         else if ( cmd.equalsIgnoreCase("minimize") ) {
             exitCode = new CommandLine(new Minimize()).execute(cmdArgs);
         }
-        else if ( cmd.equalsIgnoreCase("songlist") ) {
-            exitCode = new CommandLine(new SongList()).execute(cmdArgs);
+        else if ( cmd.equalsIgnoreCase("tracklist") ) {
+            exitCode = new CommandLine(new Tracklist()).execute(cmdArgs);
         }
         else if ( cmd.equalsIgnoreCase("automatch") ) {
             exitCode = new CommandLine(new Automatch()).execute(cmdArgs);
         }
-        else if ( cmd.equalsIgnoreCase("covers") ) {
-            exitCode = new CommandLine(new Covers()).execute(cmdArgs);
+        else if ( cmd.equalsIgnoreCase("extractcovers") ) {
+            exitCode = new CommandLine(new ExtractCovers()).execute(cmdArgs);
+        }
+        else if ( cmd.equalsIgnoreCase("downloadcovers") ) {
+            exitCode = new CommandLine(new DownloadCovers()).execute(cmdArgs);
         }
         else {
             sendHelp();
@@ -74,11 +81,15 @@ public class Main {
         System.out.println("  purgecaches\t\tPurge all cache files inside a library.");
         System.out.println("  reformat\t\tReformat song directories and update info files.");
         System.out.println("  minimize\t\tMinimize library by removing video files and background images.");
-        System.out.println("  songlist\t\tGenerate a document with a list of all songs.");
+        System.out.println("  tracklist\t\tGenerate a document with a list of all songs.");
         System.out.println("  automatch\t\tMatch mp3 files with info files in the same root directory.");
+        System.out.println("  extractcovers\t\tExtract cover files and bundle them into a single directory.");
+        System.out.println("  downloadcovers\t\tDownload missing cover files.");
         System.out.println();
         System.out.println("OPTIONS");
         System.out.println("  <directory>\t\tUltrastar library directory.");
+        System.out.println("  <size>\t\textractcovers image resize.");
+        System.out.println("  <type>\t\ttracklist export type (csv, odt).");
     }
 
 }

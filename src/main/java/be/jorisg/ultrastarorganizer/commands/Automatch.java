@@ -28,22 +28,14 @@ package be.jorisg.ultrastarorganizer.commands;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import be.jorisg.ultrastarorganizer.exceptions.LibraryException;
 import be.jorisg.ultrastarorganizer.utils.Utils;
-import it.sauronsoftware.jave.AudioAttributes;
-import it.sauronsoftware.jave.Encoder;
-import it.sauronsoftware.jave.EncoderException;
-import it.sauronsoftware.jave.EncodingAttributes;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.Normalizer;
-import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @CommandLine.Command(name = "automatch",
         description = "Match the correct mp3 files with the correct info files.")
@@ -125,7 +117,7 @@ public class Automatch implements Callable<Integer> {
                 }
             }
 
-            FileUtils.moveFile(songFile, new File(songDir, main.getFileName() + ".mp3"));
+            FileUtils.moveFile(songFile, new File(songDir, main.getBaseFileName() + ".mp3"));
             reformat.process(songDir);
             return;
         }

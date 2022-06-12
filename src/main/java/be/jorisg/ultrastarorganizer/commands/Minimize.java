@@ -77,7 +77,7 @@ public class Minimize implements Callable<Integer> {
         List<SongInfo> infoFiles = Utils.getInfoFiles(songDir);
         SongInfo main = Utils.getMainInfoFile(infoFiles);
 
-        String filename = main.getFileName();
+        String filename = main.getBaseFileName();
         boolean hasAudio = main.getMP3() != null;
 
         // get video files
@@ -111,7 +111,7 @@ public class Minimize implements Callable<Integer> {
             // convert background to cover if cover is missing but background is not
             if ( main.getCover() == null && f.equals(main.getBackground()) ) {
                 String ext = FilenameUtils.getExtension(f.getName());
-                File dest = new File(songDir, main.getFileName() + " [CO]." + ext);
+                File dest = new File(songDir, main.getBaseFileName() + " [CO]." + ext);
                 f.renameTo(dest);
 
                 main.setCover(dest);

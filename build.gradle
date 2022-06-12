@@ -28,6 +28,14 @@ dependencies {
 
     implementation 'org.odftoolkit:odfdom-java:0.8.7'
 
+//    implementation 'info.schnatterer.musicbrainzws2-java:musicbrainzws2-java:3.0.2'
+    implementation 'org.json:json:20220320'
+    implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.1.0'
+
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+
+
+
     // http://www.sauronsoftware.it/projects/jave/download.php
     implementation name: 'jave-1.0.2'
 }

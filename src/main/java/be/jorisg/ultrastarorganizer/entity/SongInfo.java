@@ -33,7 +33,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.Normalizer;
@@ -94,6 +93,10 @@ public class SongInfo {
 
     public File getFile() {
         return infoFile;
+    }
+
+    public String getName() {
+        return infoFile.getName();
     }
 
     public List<String> getNotes() {
@@ -182,7 +185,7 @@ public class SongInfo {
         return file == null ? "" : Paths.get(infoFile.getParent()).relativize(Paths.get(file.toURI())).toString();
     }
 
-    public String getFileName() {
+    public String getBaseFileName() {
         String name = getArtist().replace(",", " & ").replace("  ", " ")
                 + " - " + getTitle();
         name = name.replace("/", "-");

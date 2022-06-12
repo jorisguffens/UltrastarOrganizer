@@ -37,12 +37,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "covers",
+@CommandLine.Command(name = "extractcovers",
         description = "Copy and bundle cover images of all songs into a single directory.")
-public class Covers implements Callable<Integer> {
+public class ExtractCovers implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", description = "The ultrastar library.")
     private File directory;
+
+    @CommandLine.Parameters(index = "1", description = "Size of the cover images.")
+    private int size;
 
     @Override
     public Integer call() {
@@ -80,8 +83,8 @@ public class Covers implements Callable<Integer> {
         }
 
         double aspect = (double) img.getHeight() / (double) img.getWidth();
-        img = resizeImage(img, 60, (int) (60 * aspect));
-        ImageIO.write(img, "png", new File(outputDir, main.getFileName() + ".png"));
+        img = resizeImage(img, size, (int) (size * aspect));
+        ImageIO.write(img, "png", new File(outputDir, main.getBaseFileName() + ".png"));
     }
 
     BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {

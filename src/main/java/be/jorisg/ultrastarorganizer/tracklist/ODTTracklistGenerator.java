@@ -1,34 +1,6 @@
-/*
- * This file is part of Ultrastar Organizer, licensed under the MIT License.
- *
- * Copyright (c) Joris Guffens
- * Copyright (c) contributors
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
-package be.jorisg.ultrastarorganizer.commands;
+package be.jorisg.ultrastarorganizer.tracklist;
 
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
-import be.jorisg.ultrastarorganizer.utils.Utils;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.xerces.dom.ParentNode;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
@@ -50,67 +22,16 @@ import org.odftoolkit.odfdom.incubator.doc.text.OdfTextHeading;
 import org.odftoolkit.odfdom.pkg.OdfName;
 import org.odftoolkit.odfdom.pkg.OdfXMLFactory;
 import org.w3c.dom.Node;
-import picocli.CommandLine;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "songlist",
-        description = "Create a document with a list of all songs.")
-public class SongList implements Callable<Integer> {
-
-    @CommandLine.Parameters(index = "0", description = "The ultrastar library.")
-    private File directory;
+public class ODTTracklistGenerator implements TracklistGenerator {
 
     @Override
-    public Integer call() throws Exception {
-
-        System.out.println("Detecting songs...");
-
-        List<SongInfo> songInfos = new ArrayList<>();
-        for (File songDir : directory.listFiles()) {
-            if (!songDir.isDirectory()) {
-                continue;
-            }
-
-            try {
-                songInfos.addAll(Utils.getInfoFiles(songDir));
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        System.out.println(songInfos.size() + " songs will be processed.");
-
-        // GENERATE ADMINISTRATIVE CSV
-        File csvOutputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "songlist.csv");
-        if (!csvOutputFile.exists()) {
-            csvOutputFile.createNewFile();
-        }
-
-        try (
-                PrintWriter pw = new PrintWriter(csvOutputFile);
-        ) {
-            pw.write("SEP=,\n");
-
-            CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader(
-                    "Artist", "Title", "Cover", "Background", "Video"));
-
-            for (SongInfo info : songInfos) {
-                printer.printRecord(info.getArtist(), info.getTitle(),
-                        info.getCover() != null, info.getBackground() != null, info.getVideo() != null);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("Generated songlist.csv");
-
+    public void generate(File output, List<SongInfo> songs) throws Exception {
         // GENERATE STYLED DOCUMENT
         OdfTextDocument odt = OdfTextDocument.newTextDocument();
 
@@ -184,8 +105,8 @@ public class SongList implements Callable<Integer> {
         table.appendChild(columns);
 
         // create rows & cells
-        for (int i = 0; i < songInfos.size(); i++) {
-            SongInfo si = songInfos.get(i);
+        for (int i = 0; i < songs.size(); i++) {
+            SongInfo si = songs.get(i);
 
             TableTableRowElement row = (TableTableRowElement) OdfXMLFactory.newOdfElement(dom,
                     OdfName.newName(OdfDocumentNamespace.TABLE, "table-row"));
@@ -217,12 +138,7 @@ public class SongList implements Callable<Integer> {
         root.appendChild(table);
 
         // save odt file
-        File docOutputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "songlist.odt");
-        odt.save(docOutputFile);
-
-        System.out.println("Generated songlist.odt");
-
-        return 0;
+        odt.save(output);
     }
 
     private void clear(ParentNode parent) {
@@ -231,4 +147,5 @@ public class SongList implements Callable<Integer> {
             parent.removeChild(childNode);
         }
     }
+
 }

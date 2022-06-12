@@ -136,7 +136,7 @@ public class Reformat implements Callable<Integer> {
         }
 
         // update all info files
-        String filename = main.getFileName();
+        String filename = main.getBaseFileName();
         for ( SongInfo si : infoFiles ) {
 
             // set correct filenames in info files
@@ -148,7 +148,7 @@ public class Reformat implements Callable<Integer> {
             // save info files
             si.save();
 
-            String fname = si.getFileName();
+            String fname = si.getBaseFileName();
             if ( si.isDuet() && !fname.toLowerCase().contains("duet") ) {
                 fname += " (Duet)";
             }
