@@ -7,7 +7,7 @@ plugins {
 }
 
 group 'be.jorisg.ultrastarorganizer'
-version '1.1'
+version '2.0'
 
 repositories {
     mavenCentral()
@@ -23,8 +23,8 @@ dependencies {
     implementation 'info.picocli:picocli:4.6.1'
 
     implementation 'commons-io:commons-io:2.6'
-    implementation 'org.apache.any23:apache-any23-encoding:1.1'
     implementation 'org.apache.commons:commons-csv:1.4'
+    implementation 'org.apache.any23:apache-any23-encoding:1.1'
 
     implementation 'org.odftoolkit:odfdom-java:0.8.7'
 
@@ -32,9 +32,14 @@ dependencies {
     implementation 'org.json:json:20220320'
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.1.0'
 
-    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+//    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
 
+    implementation 'org.jline:jline:3.21.0'
+    implementation 'org.fusesource.jansi:jansi:2.4.0'
+    implementation 'me.tongfei:progressbar:0.9.3'
 
+//    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+//    annotationProcessor 'org.apache.logging.log4j:log4j-core:2.17.2'
 
     // http://www.sauronsoftware.it/projects/jave/download.php
     implementation name: 'jave-1.0.2'
@@ -43,7 +48,7 @@ dependencies {
 jar {
     manifest {
         attributes(
-                'Main-Class': 'be.jorisg.ultrastarorganizer.Main'
+                'Main-Class': 'be.jorisg.ultrastarorganizer.Main2'
         )
     }
     from 'LICENSE.txt'

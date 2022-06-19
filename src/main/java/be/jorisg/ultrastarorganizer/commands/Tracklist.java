@@ -25,68 +25,39 @@
 
 package be.jorisg.ultrastarorganizer.commands;
 
-import be.jorisg.ultrastarorganizer.entity.SongInfo;
+import be.jorisg.ultrastarorganizer.domain.Library;
 import be.jorisg.ultrastarorganizer.tracklist.TracklistType;
-import be.jorisg.ultrastarorganizer.utils.Utils;
-import org.apache.xerces.dom.ParentNode;
-import org.w3c.dom.Node;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.nio.file.FileSystems;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "songlist",
+@CommandLine.Command(name = "tracklist",
         description = "Create a document with a list of all songs.")
-public class Tracklist implements Callable<Integer> {
+public class Tracklist implements Runnable {
 
-    @CommandLine.Parameters(index = "0", description = "The ultrastar library.")
-    private File directory;
+    private final Library library;
 
-    @CommandLine.Parameters(index = "1", description = "Output file type", type = TracklistType.class)
+    @CommandLine.Option(names = {"t", "type"}, description = "Output file type",
+            required = true, type = TracklistType.class)
     private TracklistType type;
 
+    public Tracklist(Library library) {
+        this.library = library;
+    }
+
     @Override
-    public Integer call() throws Exception {
-        if ( type == null ) {
-            System.out.println("Invalid file type.");
-            return 1;
-        }
-
-        System.out.println("Looking for songs...");
-
-        List<SongInfo> songs = new ArrayList<>();
-        for (File songDir : directory.listFiles()) {
-            if (!songDir.isDirectory()) {
-                continue;
+    public void run() {
+        try {
+            File outputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "tracklist." + type.name().toLowerCase());
+            if (!outputFile.exists()) {
+                outputFile.createNewFile();
             }
 
-            try {
-                songs.addAll(Utils.getInfoFiles(songDir));
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        System.out.println(songs.size() + " songs will be processed.");
-
-        File outputFile = new File(FileSystems.getDefault().getPath(".").toFile(), "tracklist." + type.name().toLowerCase());
-        if (!outputFile.exists()) {
-            outputFile.createNewFile();
-        }
-
-        type.generator().generate(outputFile, songs);
-
-        System.out.println("Generated " + outputFile.getName());
-        return 0;
-    }
-
-    private void clear(ParentNode parent) {
-        Node childNode;
-        while ((childNode = parent.getFirstChild()) != null) {
-            parent.removeChild(childNode);
+            type.generator().generate(outputFile, library.tracks());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
+
 }

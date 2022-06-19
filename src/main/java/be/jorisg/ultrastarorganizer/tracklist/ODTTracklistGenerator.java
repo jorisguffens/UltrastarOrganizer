@@ -1,5 +1,7 @@
 package be.jorisg.ultrastarorganizer.tracklist;
 
+import be.jorisg.ultrastarorganizer.commands.Tracklist;
+import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import org.apache.xerces.dom.ParentNode;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
@@ -31,7 +33,7 @@ import java.util.List;
 public class ODTTracklistGenerator implements TracklistGenerator {
 
     @Override
-    public void generate(File output, List<SongInfo> songs) throws Exception {
+    public void generate(File output, List<TrackInfo> tracks) throws Exception {
         // GENERATE STYLED DOCUMENT
         OdfTextDocument odt = OdfTextDocument.newTextDocument();
 
@@ -105,8 +107,8 @@ public class ODTTracklistGenerator implements TracklistGenerator {
         table.appendChild(columns);
 
         // create rows & cells
-        for (int i = 0; i < songs.size(); i++) {
-            SongInfo si = songs.get(i);
+        for (int i = 0; i < tracks.size(); i++) {
+            TrackInfo si = tracks.get(i);
 
             TableTableRowElement row = (TableTableRowElement) OdfXMLFactory.newOdfElement(dom,
                     OdfName.newName(OdfDocumentNamespace.TABLE, "table-row"));
@@ -130,8 +132,8 @@ public class ODTTracklistGenerator implements TracklistGenerator {
             }
 
             cells.get(0).setTextContent((i + 1) + "");
-            cells.get(1).setTextContent(si.getArtist());
-            cells.get(2).setTextContent(si.getTitle());
+            cells.get(1).setTextContent(si.artist());
+            cells.get(2).setTextContent(si.title());
 
             table.appendChild(row);
         }

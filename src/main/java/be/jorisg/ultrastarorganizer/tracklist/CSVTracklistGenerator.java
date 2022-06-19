@@ -1,5 +1,6 @@
 package be.jorisg.ultrastarorganizer.tracklist;
 
+import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -12,23 +13,23 @@ import java.util.List;
 public class CSVTracklistGenerator implements TracklistGenerator {
 
     @Override
-    public void generate(File output, List<SongInfo> songs) {
+    public void generate(File output, List<TrackInfo> tracks) {
         try (
                 PrintWriter pw = new PrintWriter(output);
         ) {
             pw.write("SEP=,\n");
 
             CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader(
-                    "Artist", "Title", "IsDuet", "HasCover", "HasBackground", "HasVideo"));
+                    "Artist", "Title", "IsDuet", "HasCoverImage", "HasBackgroundImage", "HasVideo"));
 
-            for (SongInfo info : songs) {
+            for (TrackInfo track: tracks) {
                 printer.printRecord(
-                        info.getArtist(),
-                        info.getTitle(),
-                        info.isDuet(),
-                        info.getCover() != null,
-                        info.getBackground() != null,
-                        info.getVideo() != null
+                        track.artist(),
+                        track.title(),
+                        track.isDuet(),
+                        track.coverImagePath() != null,
+                        track.backgroundImagePath() != null,
+                        track.videoPath() != null
                 );
             }
         } catch (IOException e) {

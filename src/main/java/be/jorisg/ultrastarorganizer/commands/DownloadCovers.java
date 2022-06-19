@@ -80,9 +80,7 @@ public class DownloadCovers implements Callable<Integer> {
             }
 
             try {
-                System.out.println("");
                 process(songDir);
-                return 0;
             } catch (Exception ex) {
                 ex.printStackTrace();
             }

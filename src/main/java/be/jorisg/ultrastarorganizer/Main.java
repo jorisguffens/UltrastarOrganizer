@@ -55,9 +55,6 @@ public class Main {
         else if ( cmd.equalsIgnoreCase("minimize") ) {
             exitCode = new CommandLine(new Minimize()).execute(cmdArgs);
         }
-        else if ( cmd.equalsIgnoreCase("tracklist") ) {
-            exitCode = new CommandLine(new Tracklist()).execute(cmdArgs);
-        }
         else if ( cmd.equalsIgnoreCase("automatch") ) {
             exitCode = new CommandLine(new Automatch()).execute(cmdArgs);
         }
