@@ -1,7 +1,6 @@
-package be.jorisg.ultrastarorganizer.tracklist;
+package be.jorisg.ultrastarorganizer.commands.tracklist.generators;
 
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
@@ -22,14 +21,14 @@ public class CSVTracklistGenerator implements TracklistGenerator {
             CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader(
                     "Artist", "Title", "IsDuet", "HasCoverImage", "HasBackgroundImage", "HasVideo"));
 
-            for (TrackInfo track: tracks) {
+            for (TrackInfo track : tracks) {
                 printer.printRecord(
                         track.artist(),
                         track.title(),
                         track.isDuet(),
-                        track.coverImagePath() != null,
-                        track.backgroundImagePath() != null,
-                        track.videoPath() != null
+                        track.coverImageFile() != null,
+                        track.backgroundImageFile() != null,
+                        track.videoFile() != null
                 );
             }
         } catch (IOException e) {

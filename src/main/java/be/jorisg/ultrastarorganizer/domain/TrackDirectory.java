@@ -1,12 +1,17 @@
 package be.jorisg.ultrastarorganizer.domain;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class TrackDirectory {
 
-    private final File directory;
+    private File directory;
     private final List<TrackInfo> tracks;
 
     public TrackDirectory(File directory, Collection<TrackInfo> tracks) {
@@ -20,5 +25,19 @@ public class TrackDirectory {
 
     public List<TrackInfo> tracks() {
         return tracks;
+    }
+
+    public TrackInfo originalTrack() {
+        return tracks.stream().min(Comparator.comparing(ti -> ti.isDuet() ? 1 : 0)).orElse(null);
+    }
+
+    public void moveTo(File dest) throws IOException {
+        FileUtils.moveDirectory(directory, dest);
+        this.directory = dest;
+//        File tmp = new File(dest.getParent(), "[TMP] " + dest.getName());
+//        FileUtils.copyDirectory(directory, tmp);
+//        FileUtils.deleteDirectory(directory);
+//        FileUtils.copyDirectory(tmp, dest);
+//        FileUtils.deleteDirectory(tmp);
     }
 }

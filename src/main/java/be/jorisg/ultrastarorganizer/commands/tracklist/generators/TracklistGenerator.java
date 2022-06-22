@@ -1,4 +1,4 @@
-package be.jorisg.ultrastarorganizer.tracklist;
+package be.jorisg.ultrastarorganizer.commands.tracklist.generators;
 
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 

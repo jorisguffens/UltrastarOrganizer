@@ -1,8 +1,6 @@
-package be.jorisg.ultrastarorganizer.tracklist;
+package be.jorisg.ultrastarorganizer.commands.tracklist.generators;
 
-import be.jorisg.ultrastarorganizer.commands.Tracklist;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import be.jorisg.ultrastarorganizer.entity.SongInfo;
 import org.apache.xerces.dom.ParentNode;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
@@ -26,7 +24,6 @@ import org.odftoolkit.odfdom.pkg.OdfXMLFactory;
 import org.w3c.dom.Node;
 
 import java.io.File;
-import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
 

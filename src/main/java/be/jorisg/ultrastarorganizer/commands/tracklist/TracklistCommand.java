@@ -23,10 +23,9 @@
  * SOFTWARE.
  */
 
-package be.jorisg.ultrastarorganizer.commands;
+package be.jorisg.ultrastarorganizer.commands.tracklist;
 
-import be.jorisg.ultrastarorganizer.domain.Library;
-import be.jorisg.ultrastarorganizer.tracklist.TracklistType;
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -34,17 +33,11 @@ import java.nio.file.FileSystems;
 
 @CommandLine.Command(name = "tracklist",
         description = "Create a document with a list of all songs.")
-public class Tracklist implements Runnable {
+public class TracklistCommand implements Runnable {
 
-    private final Library library;
-
-    @CommandLine.Option(names = {"t", "type"}, description = "Output file type",
+    @CommandLine.Option(names = {"-t"}, description = "Output file type",
             required = true, type = TracklistType.class)
     private TracklistType type;
-
-    public Tracklist(Library library) {
-        this.library = library;
-    }
 
     @Override
     public void run() {
@@ -54,7 +47,7 @@ public class Tracklist implements Runnable {
                 outputFile.createNewFile();
             }
 
-            type.generator().generate(outputFile, library.tracks());
+            type.generator().generate(outputFile, UltrastarOrganizer.library().tracks());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

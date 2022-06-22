@@ -1,11 +1,9 @@
 package be.jorisg.ultrastarorganizer.domain;
 
-import be.jorisg.ultrastarorganizer.terminal.Console;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
 import org.apache.commons.io.FilenameUtils;
-import org.fusesource.jansi.Ansi;
 
 import java.io.File;
 import java.util.*;
@@ -21,17 +19,22 @@ public class Library {
         refresh();
     }
 
+    public File directory() {
+        return directory;
+    }
+
     public void refresh() {
         File[] files = directory.listFiles();
-        if ( files == null ) {
-            Console.printError("Error while loading library files.");
+        if (files == null) {
+            System.out.println("Error while loading library files.");
             return;
         }
         ProgressBarBuilder pbb = new ProgressBarBuilder()
                 .setTaskName("Loading Library")
                 .setInitialMax(files.length)
+                .setMaxRenderedLength(100)
                 .setStyle(ProgressBarStyle.ASCII);
-        try ( ProgressBar pb = pbb.build() ) {
+        try (ProgressBar pb = pbb.build()) {
             for (File file : files) {
                 if (!file.isDirectory()) {
                     continue;
@@ -46,13 +49,14 @@ public class Library {
     private void loadTracks(File directory) {
         List<File> txtFiles = filesByExtensions(directory, "txt");
         List<TrackInfo> tracks = new ArrayList<>();
-        for ( File file : txtFiles ) {
+        for (File file : txtFiles) {
             try {
                 tracks.add(TrackInfo.load(file));
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
-        if ( tracks.isEmpty() ) {
+        if (tracks.isEmpty()) {
             return;
         }
 
