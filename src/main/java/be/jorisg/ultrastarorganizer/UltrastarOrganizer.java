@@ -3,7 +3,6 @@ package be.jorisg.ultrastarorganizer;
 import be.jorisg.ultrastarorganizer.command.CliCommands;
 import be.jorisg.ultrastarorganizer.domain.Library;
 import org.fusesource.jansi.AnsiConsole;
-import org.jline.reader.*;
 import picocli.CommandLine;
 
 import java.io.File;

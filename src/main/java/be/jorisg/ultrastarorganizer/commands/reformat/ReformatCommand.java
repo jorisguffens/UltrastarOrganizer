@@ -37,6 +37,7 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -100,68 +101,61 @@ public class ReformatCommand implements Runnable {
     }
 
     private void audio(TrackInfo ti) throws IOException {
-        File file = missing(ti, ti.audioFile(), Utils::verifyAudio, "mp3");
-        if ( file != null ) {
-            ti.setAudioFileName(file.getName());
-        } else {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No audio file found.|@"));
+        if (ti.audioFile() == null) {
+            missing(ti, Utils::verifyAudio, "mp3")
+                    .ifPresentOrElse(
+                            f -> ti.setAudioFileName(f.getName()),
+                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No audio file found.|@"))
+                    );
         }
 
         rename(ti.audioFile(), ti.safeName(), ti::setAudioFileName);
     }
 
     private void video(TrackInfo ti) throws IOException {
-        File file = missing(ti, ti.videoFile(), f -> true, Utils.VIDEO_EXT);
-        if ( file != null ) {
-            ti.setVideoFileName(file.getName());
+        if (ti.videoFile() == null) {
+            missing(ti, f -> true, Utils.VIDEO_EXT)
+                    .ifPresent(file -> ti.setVideoFileName(file.getName()));
         }
 
         rename(ti.videoFile(), ti.safeName(), ti::setVideoFileName);
     }
 
     private void coverImage(TrackInfo ti) throws IOException {
-        File file = missing(ti, ti.coverImageFile(),
-                f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f),
-                Utils.IMAGE_EXT);
-        if ( file != null ) {
-            ti.setBackgroundImageFileName(file.getName());
-        } else {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No cover image file found.|@"));
+        if (ti.coverImageFile() == null) {
+            missing(ti, f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
+                    .ifPresentOrElse(
+                            f -> ti.setCoverImageFileName(f.getName()),
+                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No cover image found.|@")));
         }
 
         rename(ti.coverImageFile(), ti.safeName() + " [CO]", ti::setCoverImageFileName);
     }
 
     private void backgroundImage(TrackInfo ti) throws IOException {
-        File file = missing(ti, ti.backgroundImageFile(),
-                f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f),
-                Utils.IMAGE_EXT);
-        if ( file != null ) {
-            ti.setBackgroundImageFileName(file.getName());
+        if (ti.backgroundImageFile() == null) {
+            missing(ti, f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
+                    .ifPresent(f -> ti.setBackgroundImageFileName(f.getName()));
         }
 
         rename(ti.backgroundImageFile(), ti.safeName() + " [BG]", ti::setBackgroundImageFileName);
     }
 
-    private File missing(TrackInfo ti, File current, Predicate<File> filter, String... extensions) {
-        if (current != null) {
-            return null;
-        }
-
+    private Optional<File> missing(TrackInfo ti, Predicate<File> filter, String... extensions) {
         return Utils.findFilesByExtensions(ti.parentDirectory(), extensions).stream()
                 .filter(filter)
-                .findFirst().orElse(null);
+                .findFirst();
     }
 
     private void rename(File file, String name, Consumer<String> updater) throws IOException {
-        if (file == null ) {
+        if (file == null) {
             return;
         }
 
         String ext = FilenameUtils.getExtension(file.getName());
         name = name + "." + ext;
 
-        if ( file.getName().equals(name) ) {
+        if (file.getName().equals(name)) {
             return;
         }
 

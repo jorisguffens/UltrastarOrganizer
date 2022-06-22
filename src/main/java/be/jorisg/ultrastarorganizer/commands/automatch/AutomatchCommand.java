@@ -57,7 +57,7 @@ public class AutomatchCommand implements Runnable {
 
     @Override
     public void run() {
-        Library library = UltrastarOrganizer.library();
+        Library library = UltrastarOrganizer.refresh();
 
         File[] files = UltrastarOrganizer.workDir.listFiles();
         if (files == null) {
