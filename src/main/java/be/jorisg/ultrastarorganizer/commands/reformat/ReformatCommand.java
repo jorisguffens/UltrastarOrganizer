@@ -85,6 +85,14 @@ public class ReformatCommand implements Runnable {
             ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
         }
 
+        // update duet info
+        if ( ti.isDuet() ) {
+            String title = ti.title().replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
+            title += "(Duet)";
+            ti.setTitle(title);
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|cyan INFO: " + ti.title() + "|@"));
+        }
+
         // update TrackInfo txt file name
         if (!ti.file().getName().equals(ti.safeName() + ".txt")) {
             File target = new File(ti.parentDirectory(), ti.safeName() + ".txt");

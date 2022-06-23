@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.text.Normalizer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +79,7 @@ public class TrackInfo {
     }
 
     public String name() {
-        return artist() + " - " + title() + (isDuet() ? " (Duet)" : "");
+        return artist() + " - " + title();
     }
 
     public boolean isDuet() {
@@ -96,6 +97,11 @@ public class TrackInfo {
 
     public String artist() {
         return headers.get("ARTIST");
+    }
+
+    public String[] artists() {
+        return Arrays.stream(artist().split("(?i)([,]|(feat\\.)|(ft\\.))"))
+                .map(String::trim).toArray(String[]::new);
     }
 
     public void setArtist(String artist) {

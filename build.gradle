@@ -47,7 +47,7 @@ dependencies {
 jar {
     manifest {
         attributes(
-                'Main-Class': 'be.jorisg.ultrastarorganizer.Main2'
+                'Main-Class': 'be.jorisg.ultrastarorganizer.UltrastarOrganizer'
         )
     }
     from 'LICENSE.txt'

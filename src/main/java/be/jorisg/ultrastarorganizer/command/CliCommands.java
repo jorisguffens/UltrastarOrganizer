@@ -2,6 +2,7 @@ package be.jorisg.ultrastarorganizer.command;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.commands.automatch.AutomatchCommand;
+import be.jorisg.ultrastarorganizer.commands.coverart.CoverArtCommand;
 import be.jorisg.ultrastarorganizer.commands.reformat.ReformatCommand;
 import be.jorisg.ultrastarorganizer.commands.tracklist.TracklistCommand;
 import org.apache.commons.io.IOUtils;
@@ -40,11 +41,12 @@ import java.util.concurrent.Callable;
                 PicocliCommands.ClearScreen.class,
                 TracklistCommand.class,
                 ReformatCommand.class,
-                AutomatchCommand.class
+                AutomatchCommand.class,
+                CoverArtCommand.class
         })
 public class CliCommands implements Callable<Integer> {
 
-    @CommandLine.Option(names = {"--workDir"}, description = "The working directory")
+    @CommandLine.Option(names = {"--workdir"}, description = "The working directory")
     private File workDir;
 
     private PrintWriter out;
@@ -62,6 +64,7 @@ public class CliCommands implements Callable<Integer> {
         // setup terminal
         SystemRegistry systemRegistry = setup();
         UltrastarOrganizer.out = out;
+        UltrastarOrganizer.in = in;
 
         // print greeting
         try (
@@ -73,37 +76,10 @@ public class CliCommands implements Callable<Integer> {
             throw new RuntimeException(e);
         }
 
-//        out.println("Let's start by getting you setup!");
-//
-//        // ask library directory
-//        File directory;
-//        while (true) {
-//            String prompt = CommandLine.Help.Ansi.ON.string("@|fg(220) Library directory: |@");
-//            out.print(prompt);
-//
-//            directory = ctx.console().read(File.class);
-//            if (directory == null || !directory.isDirectory()) {
-//                out.println(CommandLine.Help.Ansi.AUTO.string("@|red Invalid library directory|@"));
-//            } else {
-//                break;
-//            }
-//        }
-//
-//        // load library
-//        Library library = new Library(directory);
-//        ctx.setLibrary(library);
-//
-//        // print some information
-//        List<TrackInfo> tracks = library.tracks();
-//        terminal.writer().println(CommandLine.Help.Ansi.AUTO.string("@|cyan " + String.format(
-//                "Loaded %d tracks in %s directories of which %d are duets.\n",
-//                tracks.size(),
-//                library.trackDirectories().size(),
-//                tracks.stream().filter(TrackInfo::isDuet).count()) + "|@")
-//        );
-
         // start the command interface
-        out.println("Working in: " + workDir.getAbsolutePath());
+        out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow Working in:|@ @|white " + workDir.getAbsolutePath() + "|@"));
+        out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow You can change this by supplying the --workdir option on startup.|@"));
+        out.println();
         out.println("Welcome! Enter your command below. Try 'help' to get help.");
 
         String line;
