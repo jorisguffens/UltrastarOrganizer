@@ -20,8 +20,20 @@ public class SearchCommand implements Runnable {
     @CommandLine.Option(names = {"--has-background"}, description = "Only show tracks with a background image")
     private boolean hasBackground;
 
-    @CommandLine.Option(names = {"--sus-image-ratio"}, description = "Only show tracks with a larger cover file than background.")
-    private boolean suspiciousImageRatio;
+    @CommandLine.Option(names = {"--has-no-background"}, description = "Only show tracks without a background image")
+    private boolean hasNoBackground;
+
+    @CommandLine.Option(names = {"--has-cover"}, description = "Only show tracks with a cover image")
+    private boolean hasCover;
+
+    @CommandLine.Option(names = {"--has-no-cover"}, description = "Only show tracks without a cover image")
+    private boolean hasNoCover;
+
+    @CommandLine.Option(names = {"--has-video"}, description = "Only show tracks with a video image")
+    private boolean hasVideo;
+
+    @CommandLine.Option(names = {"--has-no-video"}, description = "Only show tracks without a video image")
+    private boolean hasNoVideo;
 
     @CommandLine.Option(names = {"--multi-versions"}, description = "Only show tracks with multiple versions in the same directory.")
     private boolean multipleVersions;
@@ -45,10 +57,20 @@ public class SearchCommand implements Runnable {
 
         if (hasBackground) {
             result = result.stream().filter(trackInfo -> trackInfo.backgroundImageFile() != null).toList();
+        } else if ( hasNoBackground ) {
+            result = result.stream().filter(trackInfo -> trackInfo.backgroundImageFile() == null).toList();
         }
 
-        if ( suspiciousImageRatio ) {
-            result = result.stream().filter(this::suspiciousImageRatio).toList();
+        if (hasVideo) {
+            result = result.stream().filter(trackInfo -> trackInfo.videoFile() != null).toList();
+        } else if ( hasNoVideo ) {
+            result = result.stream().filter(trackInfo -> trackInfo.videoFile() == null).toList();
+        }
+
+        if (hasCover) {
+            result = result.stream().filter(trackInfo -> trackInfo.coverImageFile() != null).toList();
+        } else if ( hasNoCover ) {
+            result = result.stream().filter(trackInfo -> trackInfo.coverImageFile() == null).toList();
         }
 
         if ( multipleVersions ) {

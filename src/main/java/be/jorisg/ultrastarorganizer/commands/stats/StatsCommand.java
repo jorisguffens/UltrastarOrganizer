@@ -29,7 +29,7 @@ public class StatsCommand implements Runnable {
 
         long size = FileUtils.sizeOfDirectory(library.directory());
         stats.put("Total size", String.format("%.2f GB", size / 1024.d / 1024.d / 1024.d));
-        stats.put("Average size", String.format("%.2f MB", size / library.trackDirectories().size() / 1024.d / 1024.d));
+        stats.put("Average directory size", String.format("%.2f MB", size / library.trackDirectories().size() / 1024.d / 1024.d));
 
         for ( String key : stats.keySet() ) {
             UltrastarOrganizer.out.print(CommandLine.Help.Ansi.AUTO.string("@|cyan " + key + ": |@"));

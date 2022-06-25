@@ -35,7 +35,7 @@ import java.nio.file.FileSystems;
         description = "Create a document with a list of all songs.")
 public class TracklistCommand implements Runnable {
 
-    @CommandLine.Option(names = {"-t"}, description = "Output file type",
+    @CommandLine.Option(names = {"-t", "--type"}, description = "Output file type",
             required = true, type = TracklistType.class)
     private TracklistType type;
 

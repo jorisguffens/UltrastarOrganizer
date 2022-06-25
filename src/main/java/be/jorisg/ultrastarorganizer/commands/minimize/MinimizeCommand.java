@@ -1,19 +1,10 @@
 package be.jorisg.ultrastarorganizer.commands.minimize;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
-import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import be.jorisg.ultrastarorganizer.search.SearchEngine;
 import picocli.CommandLine;
-import ucar.nc2.util.IO;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import static be.jorisg.ultrastarorganizer.utils.Utils.shrinkImage;
 
@@ -21,11 +12,14 @@ import static be.jorisg.ultrastarorganizer.utils.Utils.shrinkImage;
         description = "Minimize library by removing stuff and compressing images.")
 public class MinimizeCommand implements Runnable {
 
-    @CommandLine.Option(names = {"--remove-backgrounds"}, description = "Remove background images")
+    @CommandLine.Option(names = {"--remove-backgrounds"}, description = "Remove background images.")
     private boolean removeBackgrounds;
 
-    @CommandLine.Option(names = {"--image-size"}, description = "Target image size")
-    private int imageSize = 256;
+    @CommandLine.Option(names = {"--max-cover-size"}, description = "Maximum cover image size.")
+    private int coverSize = 0;
+
+    @CommandLine.Option(names = {"--max-background-size"}, description = "Maximum background image size.")
+    private int backgroundSize = 0;
 
     @Override
     public void run() {
@@ -39,14 +33,14 @@ public class MinimizeCommand implements Runnable {
         if ( background != null ) {
             if (removeBackgrounds) {
                 background.delete();
-            } else {
-                shrinkImage(background, background, imageSize);
+            } else if ( backgroundSize > 0 ) {
+                shrinkImage(background, background, backgroundSize);
             }
         }
 
         File cover = ti.coverImageFile();
-        if ( cover != null ) {
-            shrinkImage(cover, cover, imageSize);
+        if ( cover != null && coverSize > 0 ) {
+            shrinkImage(cover, cover, coverSize);
         }
 
     }
