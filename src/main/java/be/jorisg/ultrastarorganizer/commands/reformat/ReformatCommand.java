@@ -51,18 +51,20 @@ public class ReformatCommand implements Runnable {
         for (TrackDirectory td : library.trackDirectories()) {
             try {
                 process(td);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
+                return;
             }
         }
     }
 
-    public void process(TrackDirectory td) throws IOException {
+    public void process(TrackDirectory td) throws Exception {
         for (TrackInfo ti : td.tracks()) {
             try {
                 process(ti);
             } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
+                throw new RuntimeException(e);
             }
         }
 
@@ -79,18 +81,30 @@ public class ReformatCommand implements Runnable {
         backgroundImage(ti);
 
         // fix negative lyrics start
-        NoteLyricCollection nlc = ti.noteLyrics();
-        int beat = nlc.noteLyrics().iterator().next().beat();
-        if (beat < 0) {
-            ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
+        NoteLyricCollection nlc = null;
+        try {
+            nlc = ti.noteLyrics();
+            int beat = nlc.noteLyricBlocks().get(0).noteLyrics().get(0).beat();
+            if (beat < 0) {
+                ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
+            }
+        } catch (Exception e) {
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.safeName() + ": " +
+                    e.getClass().getSimpleName() + ": " + e.getMessage() + "|@"));
         }
 
         // update duet info
         if ( ti.isDuet() ) {
             String title = ti.title().replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
-            title += "(Duet)";
+            title += " (Duet)";
             ti.setTitle(title);
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|cyan INFO: " + ti.title() + "|@"));
+
+            if ( nlc != null ) {
+                long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
+                if (blocks < 2) {
+                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.safeName() + ": duet without singer indication. |@"));
+                }
+            }
         }
 
         // update TrackInfo txt file name
@@ -101,6 +115,7 @@ public class ReformatCommand implements Runnable {
                 target = new File(ti.parentDirectory(), ti.safeName() + " (" + i + ").txt");
                 i++;
             }
+
             ti.moveTo(target);
         }
 
@@ -167,7 +182,12 @@ public class ReformatCommand implements Runnable {
             return;
         }
 
-        FileUtils.moveFile(file, new File(file.getParentFile(), name));
+        File target = new File(file.getParentFile(), name);
+        if ( target.exists() ) {
+            return;
+        }
+
+        FileUtils.moveFile(file, target);
         updater.accept(name);
     }
 

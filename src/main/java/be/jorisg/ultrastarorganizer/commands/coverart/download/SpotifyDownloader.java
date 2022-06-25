@@ -33,8 +33,6 @@ public class SpotifyDownloader {
 
         String token = spotifyApi.clientCredentials().build().execute().getAccessToken();
         spotifyApi.setAccessToken(token);
-        UltrastarOrganizer.out.println(token); // TODO remove
-
         this.market = market;
     }
 

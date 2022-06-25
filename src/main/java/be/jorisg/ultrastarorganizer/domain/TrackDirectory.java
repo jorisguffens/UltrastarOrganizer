@@ -1,5 +1,6 @@
 package be.jorisg.ultrastarorganizer.domain;
 
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -32,8 +33,12 @@ public class TrackDirectory {
     }
 
     public void moveTo(File dest) throws IOException {
+        if ( dest.exists() ) {
+            FileUtils.deleteDirectory(dest);
+        }
         FileUtils.moveDirectory(directory, dest);
         this.directory = dest;
+        UltrastarOrganizer.out.println("Moving " + directory.getName() + " to " + dest.getName() + ".");
 //        File tmp = new File(dest.getParent(), "[TMP] " + dest.getName());
 //        FileUtils.copyDirectory(directory, tmp);
 //        FileUtils.deleteDirectory(directory);

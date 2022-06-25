@@ -28,8 +28,7 @@ package be.jorisg.ultrastarorganizer.domain;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-public record NoteLyric(be.jorisg.ultrastarorganizer.domain.NoteLyric.NoteType type, int beat, int duration, int note,
-                        String text) {
+public record NoteLyric(NoteType type, int beat, int duration, int note, String text) {
 
     public NoteLyric withType(NoteType type) {
         return new NoteLyric(type, beat, duration, note, text);
@@ -75,16 +74,20 @@ public record NoteLyric(be.jorisg.ultrastarorganizer.domain.NoteLyric.NoteType t
         }
     }
 
-
     //
 
     public static NoteLyric fromString(String str) {
         str = str.replaceAll(Pattern.quote("\t"), " ");
+        str = str.stripLeading();
         String[] args = str.split(Pattern.quote(" "));
+
+        if (args[0].length() > 1) {
+            throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'");
+        }
 
         NoteType type = NoteType.fromKey(args[0]);
         if (type == null) {
-            throw new RuntimeException("Invalid note type.");
+            throw new IllegalArgumentException("Invalid note type for '" + str + "'");
         }
 
         int beat = Integer.parseInt(args[1]);

@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class Utils {
 
     public final static String[] VIDEO_EXT = new String[]{"mp4", "avi", "mkv", "flv", "mov", "mpg", "m4v", "divx"};
-    public final static String[] IMAGE_EXT = new String[]{"jpg", "png", "jpeg"};
+    public final static String[] IMAGE_EXT = new String[]{"jpg", "png", "jpeg", "jfif"};
 
     private final static Tika tika = new Tika();
 

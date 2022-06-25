@@ -68,8 +68,7 @@ public class TrackInfo {
     }
 
     public String safeName() {
-        String name = name();
-        name = name.replace(",", " & ");
+        String name = artist().replace(",", " & ") + " - " + title().replace(",", "");
         name = name.replace("  ", " ");
         name = name.replace("/", "-");
         name = Normalizer.normalize(name, Normalizer.Form.NFKD); // split a character with some fancy stuff in 2 characters
@@ -108,13 +107,17 @@ public class TrackInfo {
         headers.put("ARTIST", artist);
     }
 
-    private File file(String name) {
-        if ( !headers.containsKey(name) ) {
+    private File file(String key) {
+        if ( !headers.containsKey(key) ) {
+            return null;
+        }
+        String fileName = headers.get(key);
+        if ( fileName.trim().equals("") ) {
             return null;
         }
 
-        File file = new File(this.file.getParentFile(), headers.get(name));
-        if ( file.exists() ) {
+        File file = new File(this.file.getParentFile(), fileName);
+        if ( file.exists() && !file.isDirectory() ) {
             return file;
         }
 

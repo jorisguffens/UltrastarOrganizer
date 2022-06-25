@@ -28,64 +28,124 @@ package be.jorisg.ultrastarorganizer.domain;
 import java.util.ArrayList;
 import java.util.List;
 
-public record NoteLyricCollection(List<NoteLyric> noteLyrics) {
+public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
 
-    public NoteLyricCollection(List<NoteLyric> noteLyrics) {
-        this.noteLyrics = List.copyOf(noteLyrics);
+    public NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
+        this.noteLyricBlocks = List.copyOf(noteLyricBlocks);
     }
 
-//    public List<NoteLyric> realNoteLyrics() {
-//        return noteLyrics.stream().filter(n -> n.type() != NoteLyric.NoteType.BREAK).collect(Collectors.toList());
-//    }
-//
-//    public NoteLyric noteAtBeat(int beat, int maxDeviation) {
-//        NoteLyric bestMatch = null;
-//        for (NoteLyric n : realNoteLyrics()) {
-//            if (beat > n.beat() && beat < n.beat() + n.length()) {
-//                return n;
-//            } else if (beat > n.beat() - maxDeviation && beat < n.beat() + n.length() + maxDeviation) {
-//                bestMatch = n;
-//            }
-//        }
-//        return bestMatch;
-//    }
-
     public NoteLyricCollection shift(int amount) {
-        if (noteLyrics.get(0).beat() + amount < 0) {
+        if (noteLyricBlocks.get(0).noteLyrics().get(0).beat() + amount < 0) {
             throw new IllegalArgumentException();
         }
 
-        List<NoteLyric> shifted = new ArrayList<>();
-        for (NoteLyric note : noteLyrics) {
-            shifted.add(note.withBeat(note.beat() + amount));
+        List<NoteLyricBlock> blocks = new ArrayList<>();
+        for ( NoteLyricBlock block : noteLyricBlocks ) {
+            List<NoteLyric> noteLyrics = new ArrayList<>();
+            for (NoteLyric note : block.noteLyrics) {
+                noteLyrics.add(note.withBeat(note.beat() + amount));
+            }
+            blocks.add(new NoteLyricBlock(noteLyrics, block.singer));
         }
 
-        return new NoteLyricCollection(shifted);
+        return new NoteLyricCollection(blocks);
     }
 
     public List<String> toStringList() {
         List<String> lines = new ArrayList<>();
-        for (NoteLyric note : noteLyrics) {
-            lines.add(note.toString());
+        for (NoteLyricBlock block : noteLyricBlocks) {
+            if ( block.singer() != null ) {
+                lines.add(block.singer().toString());
+            }
+            for ( NoteLyric noteLyric : block.noteLyrics() ) {
+                lines.add(noteLyric.toString());
+            }
         }
+        lines.add("E");
         return lines;
+    }
+
+    public enum Singer {
+        SINGER1("P1"),
+        SINGER2("P2"),
+        BOTH("P3");
+
+        private final String key;
+
+        Singer(String key) {
+            this.key = key;
+        }
+
+        @Override
+        public String toString() {
+            return key;
+        }
+    }
+
+    public static class NoteLyricBlock {
+
+        private final List<NoteLyric> noteLyrics;
+        private final Singer singer;
+
+        private NoteLyricBlock(List<NoteLyric> noteLyrics, Singer singer) {
+            this.noteLyrics = List.copyOf(noteLyrics);
+            this.singer = singer;
+        }
+
+        private NoteLyricBlock(List<NoteLyric> noteLyrics) {
+            this(noteLyrics, null);
+        }
+
+        public List<NoteLyric> noteLyrics() {
+            return noteLyrics;
+        }
+
+        public Singer singer() {
+            return singer;
+        }
+
+        public NoteLyricBlock withSinger(Singer singer) {
+            return new NoteLyricBlock(noteLyrics, singer);
+        }
     }
 
     //
 
     public static NoteLyricCollection fromStringList(List<String> noteLyrics) {
-        List<NoteLyric> collection = new ArrayList<>();
+        List<NoteLyricBlock> blocks = new ArrayList<>();
+        List<NoteLyric> block = new ArrayList<>();
+        Singer singer = null;
         for (String line : noteLyrics) {
             if (line.startsWith("E")) {
                 break;
             }
-            if (line.trim().equals("")) {
+
+            String trim = line.trim();
+            if (trim.equals("")) {
                 continue;
             }
 
-            collection.add(NoteLyric.fromString(line));
+            // duet stuff
+            if ( trim.startsWith("P") ) {
+                blocks.add(new NoteLyricBlock(block, singer));
+                block.clear();
+
+                if (trim.charAt(1) == '1') {
+                    singer = Singer.SINGER1;
+                }
+                else if (trim.charAt(1) == '2') {
+                    singer = Singer.SINGER2;
+                } else {
+                    singer = Singer.BOTH;
+                }
+
+                continue;
+            }
+
+            block.add(NoteLyric.fromString(line));
         }
 
-        return new NoteLyricCollection(collection);
+        blocks.add(new NoteLyricBlock(block, singer));
+        return new NoteLyricCollection(blocks);
     }
 }
