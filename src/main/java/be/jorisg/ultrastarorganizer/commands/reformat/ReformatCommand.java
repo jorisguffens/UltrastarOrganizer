@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @CommandLine.Command(name = "reformat",
         description = "Reformat song directory and update info files")
@@ -64,7 +65,6 @@ public class ReformatCommand implements Runnable {
                 process(ti);
             } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
-                throw new RuntimeException(e);
             }
         }
 
@@ -75,6 +75,12 @@ public class ReformatCommand implements Runnable {
     }
 
     public void process(TrackInfo ti) throws IOException {
+        // update title;
+        String title = ti.title();
+        title = title.replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
+        title = title.replaceAll(Pattern.quote("  "), "").trim();
+        ti.setTitle(title);
+
         audio(ti);
         video(ti);
         coverImage(ti);
@@ -87,32 +93,36 @@ public class ReformatCommand implements Runnable {
             int beat = nlc.noteLyricBlocks().get(0).noteLyrics().get(0).beat();
             if (beat < 0) {
                 ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|cyan Shifting beats to a positive number for " + ti.safeName() + "|@"));
+            }
+            if ( nlc.noteLyricBlocks().stream().anyMatch(nlb -> !nlb.isValid()) ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|yellow WARNING: A note block is invalid in " + ti.safeName() + ". |@"));
             }
         } catch (Exception e) {
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.safeName() + ": " +
                     e.getClass().getSimpleName() + ": " + e.getMessage() + "|@"));
+            e.printStackTrace(UltrastarOrganizer.out);
         }
 
         // update duet info
-        if ( ti.isDuet() ) {
-            String title = ti.title().replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
-            title += " (Duet)";
-            ti.setTitle(title);
-
-            if ( nlc != null ) {
-                long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
-                if (blocks < 2) {
-                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.safeName() + ": duet without singer indication. |@"));
-                }
+        if ( ti.isDuet() && nlc != null) {
+            long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
+            if (blocks < 2) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": duet without singer indication. |@"));
             }
         }
 
         // update TrackInfo txt file name
         if (!ti.file().getName().equals(ti.safeName() + ".txt")) {
-            File target = new File(ti.parentDirectory(), ti.safeName() + ".txt");
+            String name = ti.safeName();
+            if ( ti.isDuet() ) name += " (Duet)";
+
+            File target = new File(ti.parentDirectory(), name + ".txt");
             int i = 1;
             while (target.exists()) {
-                target = new File(ti.parentDirectory(), ti.safeName() + " (" + i + ").txt");
+                target = new File(ti.parentDirectory(), name + " (" + i + ").txt");
                 i++;
             }
 
@@ -128,7 +138,7 @@ public class ReformatCommand implements Runnable {
             missing(ti, Utils::verifyAudio, "mp3")
                     .ifPresentOrElse(
                             f -> ti.setAudioFileName(f.getName()),
-                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No audio file found.|@"))
+                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.name() + ": No audio file found.|@"))
                     );
         }
 
@@ -149,7 +159,7 @@ public class ReformatCommand implements Runnable {
             missing(ti, f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
                     .ifPresentOrElse(
                             f -> ti.setCoverImageFileName(f.getName()),
-                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.name() + ": No cover image found.|@")));
+                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.name() + ": No cover image found.|@")));
         }
 
         rename(ti.coverImageFile(), ti.safeName() + " [CO]", ti::setCoverImageFileName);

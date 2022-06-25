@@ -3,9 +3,14 @@ package be.jorisg.ultrastarorganizer.command;
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.commands.automatch.AutomatchCommand;
 import be.jorisg.ultrastarorganizer.commands.coverart.CoverArtCommand;
+import be.jorisg.ultrastarorganizer.commands.diff.DiffCommand;
+import be.jorisg.ultrastarorganizer.commands.minimize.MinimizeCommand;
 import be.jorisg.ultrastarorganizer.commands.reformat.ReformatCommand;
+import be.jorisg.ultrastarorganizer.commands.search.SearchCommand;
+import be.jorisg.ultrastarorganizer.commands.stats.StatsCommand;
 import be.jorisg.ultrastarorganizer.commands.tracklist.TracklistCommand;
 import org.apache.commons.io.IOUtils;
+import org.apache.poi.ss.formula.functions.MinaMaxa;
 import org.jline.console.SystemRegistry;
 import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.keymap.KeyMap;
@@ -42,14 +47,18 @@ import java.util.concurrent.Callable;
                 TracklistCommand.class,
                 ReformatCommand.class,
                 AutomatchCommand.class,
-                CoverArtCommand.class
+                CoverArtCommand.class,
+                DiffCommand.class,
+                SearchCommand.class,
+                MinimizeCommand.class,
+                StatsCommand.class
         })
 public class CliCommands implements Callable<Integer> {
 
     @CommandLine.Option(names = {"--workdir"}, description = "The working directory")
     private File workDir;
 
-    private PrintWriter out;
+    private Terminal terminal;
     private LineReader in;
 
     @Override
@@ -63,7 +72,7 @@ public class CliCommands implements Callable<Integer> {
 
         // setup terminal
         SystemRegistry systemRegistry = setup();
-        UltrastarOrganizer.out = out;
+        UltrastarOrganizer.out = terminal.writer();
         UltrastarOrganizer.in = in;
 
         // print greeting
@@ -71,16 +80,16 @@ public class CliCommands implements Callable<Integer> {
                 InputStream is = UltrastarOrganizer.class.getClassLoader().getResourceAsStream("greeting.txt");
         ) {
             String greeting = IOUtils.toString(Objects.requireNonNull(is), StandardCharsets.UTF_8);
-            out.print(greeting);
+            terminal.writer().print(greeting);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         // start the command interface
-        out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow Working in:|@ @|white " + workDir.getAbsolutePath() + "|@"));
-        out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow You can change this by supplying the --workdir option on startup.|@"));
-        out.println();
-        out.println("Welcome! Enter your command below. Try 'help' to get help.");
+        terminal.writer().println(CommandLine.Help.Ansi.AUTO.string("@|yellow Working in:|@ @|white " + workDir.getAbsolutePath() + "|@"));
+        terminal.writer().println(CommandLine.Help.Ansi.AUTO.string("@|yellow You can change this by supplying the --workdir option on startup.|@"));
+        terminal.writer().println();
+        terminal.writer().println("Welcome! Enter your command below. Try 'help' to get help.");
 
         String line;
         while (true) {
@@ -95,13 +104,15 @@ public class CliCommands implements Callable<Integer> {
             }
         }
 
+        systemRegistry.close();
+        terminal.close();
+
         return 0;
     }
 
     private SystemRegistry setup() throws IOException {
         Parser parser = new DefaultParser();
-        Terminal terminal = TerminalBuilder.builder().dumb(true).color(true).build();
-        out = terminal.writer();
+        terminal = TerminalBuilder.builder().dumb(true).color(true).build();
 
         // initialize picocli
         PicocliCommands.PicocliCommandsFactory factory = new PicocliCommands.PicocliCommandsFactory();

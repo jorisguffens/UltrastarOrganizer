@@ -82,12 +82,16 @@ public record NoteLyric(NoteType type, int beat, int duration, int note, String 
         String[] args = str.split(Pattern.quote(" "));
 
         if (args[0].length() > 1) {
-            throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'");
+            if ( !args[0].startsWith("-") ) {
+                throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'");
+            }
+            int beat = Integer.parseInt(args[0].substring(1));
+            return new NoteLyric(NoteType.BREAK, beat, 0, 0, "");
         }
 
         NoteType type = NoteType.fromKey(args[0]);
         if (type == null) {
-            throw new IllegalArgumentException("Invalid note type for '" + str + "'");
+            throw new IllegalArgumentException("Invalid note type for line '" + str + "'");
         }
 
         int beat = Integer.parseInt(args[1]);

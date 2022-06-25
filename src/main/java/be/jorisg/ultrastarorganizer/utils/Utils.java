@@ -28,6 +28,9 @@ package be.jorisg.ultrastarorganizer.utils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.Tika;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -71,6 +74,37 @@ public class Utils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return false;
+    }
+
+    public static boolean shrinkImage(File file, File outputFile, int maxSize) {
+        try {
+            BufferedImage original = ImageIO.read(file);
+            if (original == null) {
+                return false;
+            }
+
+            double ratio = (double) original.getHeight() / (double) original.getWidth();
+            int targetWidth, targetHeight;
+            if ( ratio > 1 ) {
+                targetWidth = (int) (maxSize / ratio);
+                targetHeight = maxSize;
+            } else {
+                targetWidth = maxSize;
+                targetHeight = (int) (maxSize * ratio);
+            }
+
+            if ( original.getWidth() < targetWidth || original.getHeight() < targetHeight ) {
+                return false;
+            }
+
+            Image resultingImage = original.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+            outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+
+            ImageIO.write(outputImage, "jpeg", outputFile);
+            return true;
+        } catch (IOException ignored) {}
         return false;
     }
 

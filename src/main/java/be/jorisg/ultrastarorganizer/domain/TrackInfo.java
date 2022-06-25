@@ -25,16 +25,17 @@
 
 package be.jorisg.ultrastarorganizer.domain;
 
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import org.apache.any23.encoding.TikaEncodingDetector;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -68,13 +69,7 @@ public class TrackInfo {
     }
 
     public String safeName() {
-        String name = artist().replace(",", " & ") + " - " + title().replace(",", "");
-        name = name.replace("  ", " ");
-        name = name.replace("/", "-");
-        name = Normalizer.normalize(name, Normalizer.Form.NFKD); // split a character with some fancy stuff in 2 characters
-        name = name.replaceAll("[^\\p{ASCII}]", ""); // remove the fancy stuff
-        name = name.replaceAll("[?]|[.]$", ""); // illegal filename characters
-        return name;
+        return safeArtist() + " - " + safeTitle();
     }
 
     public String name() {
@@ -82,8 +77,44 @@ public class TrackInfo {
     }
 
     public boolean isDuet() {
-        return headers.containsKey("DUETSINGERP1") && !headers.get("DUETSINGERP1").equals("")
+        boolean headerCheck = headers.containsKey("DUETSINGERP1") && !headers.get("DUETSINGERP1").equals("")
                 && headers.containsKey("DUETSINGERP2") && !headers.get("DUETSINGERP2").equals("");
+        boolean videoHeaderCheck = headers.containsKey("VIDEO") && headers.get("VIDEO").contains("p1=")
+                && headers.get("VIDEO").contains("p2=");
+        boolean noteLyricsCheck = false;
+        try {
+            noteLyricsCheck =  noteLyrics().noteLyricBlocks().size() > 1;
+        } catch (Exception e) {
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|red ERROR: " + safeName() + ": " + e.getMessage() + "|@"));
+        }
+        return headerCheck
+                || videoHeaderCheck
+                || title().contains("(Duet)")
+                || noteLyricsCheck;
+    }
+
+    private String safe(String str) {
+        str = str.replace("  ", " ");
+        str = str.replace("/", "-");
+        str = Normalizer.normalize(str, Normalizer.Form.NFKD); // split a character with some fancy stuff in 2 characters
+        str = str.replaceAll("[^\\p{ASCII}]", ""); // remove the fancy stuff
+        str = str.replaceAll("[?]|[.]$", ""); // illegal filename characters
+        return str;
+    }
+
+    private String safeArtist() {
+        String artist = artist();
+        artist = artist.replace(",", " & ");
+        artist = safe(artist);
+        return artist;
+    }
+
+    private String safeTitle() {
+        String title = title();
+        title = title.replace(",", "");
+        title = safe(title);
+        return title;
     }
 
     public String title() {
@@ -108,16 +139,16 @@ public class TrackInfo {
     }
 
     private File file(String key) {
-        if ( !headers.containsKey(key) ) {
+        if (!headers.containsKey(key)) {
             return null;
         }
         String fileName = headers.get(key);
-        if ( fileName.trim().equals("") ) {
+        if (fileName.trim().equals("")) {
             return null;
         }
 
         File file = new File(this.file.getParentFile(), fileName);
-        if ( file.exists() && !file.isDirectory() ) {
+        if (file.exists() && !file.isDirectory()) {
             return file;
         }
 
@@ -167,7 +198,7 @@ public class TrackInfo {
 
     public void setNoteLyrics(NoteLyricCollection noteLyricCollection) {
         this.noteLyricLines.clear();
-        this. noteLyricLines.addAll(noteLyricCollection.toStringList());
+        this.noteLyricLines.addAll(noteLyricCollection.toStringList());
     }
 
     //
@@ -178,6 +209,11 @@ public class TrackInfo {
             // headers
             for (String header : headers.keySet().stream().sorted().toList()) {
                 String line = "#" + header.toUpperCase() + ":" + headers.get(header.toUpperCase());
+
+                if (header.equals("TITLE") && isDuet()) {
+                    line += " (Duet)";
+                }
+
                 fw.write(line + "\n");
             }
 

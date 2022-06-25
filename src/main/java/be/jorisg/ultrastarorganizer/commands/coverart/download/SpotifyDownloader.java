@@ -51,7 +51,7 @@ public class SpotifyDownloader {
             }
         }
 
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|cyan Downloading cover for " + main.name() + "|@"));
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|cyan Downloading cover for " + main.name() + "... |@"));
 
         String artist = String.join(" & ", main.artists());
         String title = main.title().replace(" (Duet)", "");
@@ -66,7 +66,7 @@ public class SpotifyDownloader {
         Track[] tracks = str.execute().getItems();
 
         if (tracks.length == 0) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red \tERROR: No results found.|@"));
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow \tNo results found.|@"));
             return;
         }
 
@@ -74,7 +74,7 @@ public class SpotifyDownloader {
         Image image = Arrays.stream(images).max(Comparator.comparingInt(img -> img.getWidth() * img.getHeight()))
                 .orElse(null);
         if (image == null) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red \tERROR: No album image for result.|@"));
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow \tNo album image for result.|@"));
             return;
         }
 

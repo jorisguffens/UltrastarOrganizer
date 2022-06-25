@@ -25,6 +25,9 @@
 
 package be.jorisg.ultrastarorganizer.domain;
 
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
+import picocli.CommandLine;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,6 +110,17 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
         public NoteLyricBlock withSinger(Singer singer) {
             return new NoteLyricBlock(noteLyrics, singer);
         }
+
+        public boolean isValid() {
+            int last = 0;
+            for ( NoteLyric nl : noteLyrics ) {
+                if ( nl.beat() < last ) {
+                    return true;
+                }
+                last = nl.beat();
+            }
+            return true;
+        }
     }
 
     //
@@ -127,8 +141,10 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
 
             // duet stuff
             if ( trim.startsWith("P") ) {
-                blocks.add(new NoteLyricBlock(block, singer));
-                block.clear();
+                if ( !block.isEmpty() ) {
+                    blocks.add(new NoteLyricBlock(block, singer));
+                    block.clear();
+                }
 
                 if (trim.charAt(1) == '1') {
                     singer = Singer.SINGER1;

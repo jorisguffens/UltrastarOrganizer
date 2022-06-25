@@ -36,9 +36,10 @@ public class TrackDirectory {
         if ( dest.exists() ) {
             FileUtils.deleteDirectory(dest);
         }
+        UltrastarOrganizer.out.println("Moving '" + directory.getName() + "' to '" + dest.getName() + "'.");
         FileUtils.moveDirectory(directory, dest);
         this.directory = dest;
-        UltrastarOrganizer.out.println("Moving " + directory.getName() + " to " + dest.getName() + ".");
+
 //        File tmp = new File(dest.getParent(), "[TMP] " + dest.getName());
 //        FileUtils.copyDirectory(directory, tmp);
 //        FileUtils.deleteDirectory(directory);

@@ -27,7 +27,6 @@ package be.jorisg.ultrastarorganizer.commands.automatch;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.commands.reformat.ReformatCommand;
-import be.jorisg.ultrastarorganizer.commands.tracklist.TracklistType;
 import be.jorisg.ultrastarorganizer.domain.Library;
 import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
@@ -36,11 +35,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import picocli.CommandLine;
 
-import javax.naming.directory.SearchResult;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 
 @CommandLine.Command(name = "automatch",
         description = "Match the correct mp3 files with the correct info files.")
@@ -87,14 +84,14 @@ public class AutomatchCommand implements Runnable {
             return;
         }
 
-        SearchEngine.SearchResult<File> result = engine.search(main.safeName());
+        SearchEngine.SearchResult<File> result = engine.searchOne(main.safeName());
         if (result == null ) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red No match found for " + main.safeName() + "|@"));
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: No match found for " + main.safeName() + "|@"));
             return;
         }
 
         if ( result.pctMatch() < minPercentMatch || result.match() < 1 ) {
-            String s = String.format("@|red Best match for %s has a score of (%.2f) which is below the treshold of %.2f:\n\t%s|@",
+            String s = String.format("@|yellow WARNING: Best match for %s has a score of (%.2f) which is below the treshold of %.2f:\n\t%s|@",
                     main.safeName(), result.pctMatch(), minPercentMatch, result.option().getName());
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(s));
             return;

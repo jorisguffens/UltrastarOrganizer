@@ -1,7 +1,5 @@
 package be.jorisg.ultrastarorganizer.search;
 
-import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
-
 import java.text.Normalizer;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -24,9 +22,13 @@ public class SearchEngine<T> {
         indexes.removeIf(i -> i.option.equals(option));
     }
 
-    public SearchResult<T> search(String input) {
+    public SearchResult<T> searchOne(String input) {
         List<SearchResult<T>> result = search(input,  1);
         return result.isEmpty() ? null : result.get(0);
+    }
+
+    public List<SearchResult<T>> search(String input) {
+        return search(input,  Integer.MAX_VALUE);
     }
 
     public List<SearchResult<T>> search(String input, int limit) {

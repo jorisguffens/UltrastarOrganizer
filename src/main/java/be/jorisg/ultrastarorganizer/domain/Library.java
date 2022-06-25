@@ -78,4 +78,8 @@ public class Library {
     public List<TrackDirectory> trackDirectories() {
         return Collections.unmodifiableList(trackDirectories);
     }
+
+    public TrackDirectory directoryOf(TrackInfo ti) {
+        return trackDirectories.stream().filter(td -> td.tracks().contains(ti)).findFirst().orElse(null);
+    }
 }
