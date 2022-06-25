@@ -60,6 +60,7 @@ This program generates a tracklist in an external file. Very useful if you want 
 | `--type <value>` | Tracklist type, valid values are: <br/>- `ODT` OpenOffice Document<br/>- `CSV` Comma Separated Values |
 
 **OpenOffice Document Example**
+
 ![Songlist document example](images/songlist-result.png)
 
 
