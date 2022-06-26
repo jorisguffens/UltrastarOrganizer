@@ -51,6 +51,9 @@ public class AutomatchCommand implements Runnable {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
             }
         }
+
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Finished automatching audio files with sub-directories. |@"));
     }
 
     private void process(TrackDirectory td, SearchEngine<File> engine) throws IOException {

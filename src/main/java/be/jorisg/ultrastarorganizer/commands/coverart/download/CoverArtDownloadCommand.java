@@ -34,6 +34,9 @@ public class CoverArtDownloadCommand implements Runnable {
                 for (TrackDirectory td : library.trackDirectories()) {
                     process(td, sd);
                 }
+
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|cyan Finished downloading missing covers. |@"));
             } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR:|@ " + e.getMessage()));
             }

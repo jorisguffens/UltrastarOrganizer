@@ -119,6 +119,7 @@ public class CliCommands implements Callable<Integer> {
         factory.setTerminal(terminal);
 
         CommandLine cmd = new CommandLine(this, factory);
+        cmd.setErr(terminal.writer());
         PicocliCommands picocliCommands = new PicocliCommands(cmd);
 
         // initialize picocli integration with jline

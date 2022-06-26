@@ -30,6 +30,9 @@ public class CoverArtExtractCommand implements Runnable {
         }
 
         UltrastarOrganizer.refresh().tracks().forEach(this::process);
+
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Covers have been extracted and resized in '" + outputDir.toPath() + "'. |@"));
     }
 
     private void process(TrackInfo ti) {

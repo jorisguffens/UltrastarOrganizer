@@ -7,6 +7,7 @@ import org.apache.commons.csv.CSVPrinter;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.Normalizer;
 import java.util.List;
 
 public class CSVTracklistGenerator implements TracklistGenerator {
@@ -22,9 +23,12 @@ public class CSVTracklistGenerator implements TracklistGenerator {
                     "Artist", "Title", "IsDuet", "HasCoverImage", "HasBackgroundImage", "HasVideo"));
 
             for (TrackInfo track : tracks) {
+                String artist = ascii(track.artist());
+                String title = ascii(track.title());
+
                 printer.printRecord(
-                        track.artist(),
-                        track.title(),
+                        artist,
+                        title,
                         track.isDuet(),
                         track.coverImageFile() != null,
                         track.backgroundImageFile() != null,
@@ -34,6 +38,12 @@ public class CSVTracklistGenerator implements TracklistGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    
+    private String ascii(String str) {
+        str = Normalizer.normalize(str, Normalizer.Form.NFKD);
+        str = str.replaceAll("[^\\p{ASCII}]", "");
+        return str;
     }
 
 }

@@ -74,18 +74,18 @@ public class TrackInfo {
         str = str.replace("/", "-");
         str = Normalizer.normalize(str, Normalizer.Form.NFKD); // split a character with some fancy stuff in 2 characters
         str = str.replaceAll("[^\\p{ASCII}]", ""); // remove the fancy stuff
-        str = str.replaceAll("[?]|[.]$", ""); // illegal filename characters
+        str = str.replace("?", ""); // illegal filename characters
         return str;
     }
 
-    private String safeArtist() {
+    public String safeArtist() {
         String artist = artist();
         artist = artist.replace(",", " & ");
         artist = safe(artist);
         return artist;
     }
 
-    private String safeTitle() {
+    public String safeTitle() {
         String title = title();
         title = title.replace(",", "");
         title = safe(title);

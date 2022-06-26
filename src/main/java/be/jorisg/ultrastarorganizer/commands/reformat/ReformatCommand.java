@@ -28,10 +28,12 @@ public class ReformatCommand implements Runnable {
             try {
                 process(td);
             } catch (Exception e) {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
-                return;
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|red ERROR: " + e.getMessage() + "|@"));
             }
         }
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Library has been reformatted. |@"));
     }
 
     public void process(TrackDirectory td) throws Exception {

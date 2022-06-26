@@ -24,6 +24,8 @@ public class TracklistCommand implements Runnable {
         } else if ( outputFile.isDirectory() ) {
             outputFile = new File(outputFile, "tracklist." + type.name().toLowerCase());
         }
+        
+        UltrastarOrganizer.refresh();
 
         try {
             if (!outputFile.exists()) {
@@ -31,6 +33,9 @@ public class TracklistCommand implements Runnable {
             }
 
             type.generator().generate(outputFile, UltrastarOrganizer.library().tracks());
+
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|cyan Generated tracklist '" + outputFile.toPath() + "'. |@"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

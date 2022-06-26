@@ -2,6 +2,7 @@ package be.jorisg.ultrastarorganizer.commands.minimize;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
+import org.apache.commons.io.FileUtils;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -24,7 +25,14 @@ public class MinimizeCommand implements Runnable {
     @Override
     public void run() {
         UltrastarOrganizer.refresh();
+        long size = FileUtils.sizeOfDirectory(UltrastarOrganizer.library().directory());
         UltrastarOrganizer.library().tracks().forEach(this::process);
+        long newSize = FileUtils.sizeOfDirectory(UltrastarOrganizer.library().directory());
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                String.format("@|cyan Reduced library size from %.2f GB to %.2f GB (%.2f %%).|@",
+                        size / 1024.d / 1024.d / 1024.d,
+                        newSize / 1024.d / 1024.d / 1024.d,
+                        (newSize / (double) size))));
     }
 
     private void process(TrackInfo ti) {
