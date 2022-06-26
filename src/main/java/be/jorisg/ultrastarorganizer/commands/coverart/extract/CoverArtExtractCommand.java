@@ -22,12 +22,11 @@ public class CoverArtExtractCommand implements Runnable {
         if (outputDir == null) {
             outputDir = new File(UltrastarOrganizer.workDir, "#ExtractedCovers");
         }
-        if (!outputDir.isDirectory()) {
+        if ( !outputDir.exists() ) {
+            outputDir.mkdirs();
+        } else if (!outputDir.isDirectory()) {
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@| ERROR: Given output path is not a directory. |@"));
             return;
-        }
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
         }
 
         UltrastarOrganizer.refresh().tracks().forEach(this::process);
