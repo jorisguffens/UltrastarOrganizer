@@ -11,12 +11,24 @@ public class SearchEngine<T> {
 
     public final BiConsumer<T, String> indexer = (option, key) -> {
         key = Normalizer.normalize(key, Normalizer.Form.NFD);
+        index(option, key); // standard index
+
+        String stripped = key
+                .replaceAll("[(][^)]*[)]", "")
+                .replaceAll("\\[[^\\]]*\\]", "").trim();
+        if ( !stripped.equals(key) ) {
+            System.out.println("'" + key + "' -> '" + stripped + "'");
+           index(option, stripped);
+        }
+    };
+
+    private final void index(T option, String key) {
         String[] parts = Arrays.stream(key.split(Pattern.quote(" ")))
                 .filter(s -> s.length() > 1)
                 .map(s -> s.replaceAll("[^A-Za-z0-9]+", ""))
                 .toArray(String[]::new);
         indexes.add(new Index<T>(option, key, parts));
-    };
+    }
 
     public void removeIndex(T option) {
         indexes.removeIf(i -> i.option.equals(option));
@@ -54,9 +66,10 @@ public class SearchEngine<T> {
     private record Index<T>(T option, String key, String[] parts) {
 
         private SearchResult<T> match(String[] inputs) {
-            double match = Arrays.stream(inputs).filter(s -> Arrays.stream(parts).anyMatch(k -> k.equalsIgnoreCase(s)))
+            double match = Arrays.stream(inputs)
+                    .filter(s -> Arrays.stream(parts).anyMatch(k -> k.equalsIgnoreCase(s)))
                     .count();
-            double pct = match / parts.length;
+            double pct = match / ((parts.length + inputs.length) / 2d);
 
             return new SearchResult<T>(option, match, pct, match + pct);
         }

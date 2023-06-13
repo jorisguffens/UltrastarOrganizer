@@ -11,10 +11,8 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @CommandLine.Command(name = "diff",
         description = "Compare your library against another library or tracklist csv.")
@@ -70,33 +68,51 @@ public class DiffCommand implements Runnable {
     }
 
     private void compare(Collection<String> other) {
-        List<String> unique = new ArrayList<>(); // only in current library
-        List<String> missing = new ArrayList<>(); // not in current library
+        List<String> thiz = UltrastarOrganizer.library().tracks()
+                .stream()
+                .map(TrackInfo::name)
+                .toList();
 
-        for (TrackInfo ti : UltrastarOrganizer.library().tracks() ) {
-            if ( !other.contains(ti.name()) ) {
-                unique.add(ti.name());
-            }
-        }
+        List<String> unique = new ArrayList<>(thiz); // only in current library
+        unique.removeAll(other);
 
-        for ( String o : other ) {
-            if ( UltrastarOrganizer.library().tracks().stream().noneMatch(ti -> ti.name().equals(o)) ) {
-                missing.add(o);
-            }
-        }
+        List<String> missing = new ArrayList<>(other); // not in current library
+        missing.removeAll(thiz);
+
+        List<String> duplicate = new ArrayList<>(thiz); // in both
+        duplicate.removeIf(s -> !other.contains(s));
 
         // unique
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                "@|cyan Found " + unique.size() + " unique tracks: |@"));
+        if ( unique.size() > 0 ) {
+            UltrastarOrganizer.out.println();
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|cyan Found " + unique.size() + " unique tracks: |@"));
 
-        unique.forEach(u -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                "@|green + " + u + "|@")));
+            unique.forEach(u -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|green + " + u + "|@")));
+        }
 
         // missing
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                "@|cyan Found " + missing.size() + " missing tracks: |@"));
-        missing.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                "@|red - " + m + "|@")));
+        if ( missing.size() > 0 ) {
+            UltrastarOrganizer.out.println();
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|cyan Found " + missing.size() + " missing tracks: |@"));
+            missing.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|red - " + m + "|@")));
+        }
 
+        // duplicate
+        if ( duplicate.size() > 0 ) {
+            UltrastarOrganizer.out.println();
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|cyan Found " + duplicate.size() + " duplicate tracks: |@"));
+            duplicate.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|yellow - " + m + "|@")));
+        }
+
+        if ( unique.isEmpty() && missing.isEmpty() && duplicate.isEmpty() ) {
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|cyan No differences found.|@"));
+        }
     }
 }

@@ -16,6 +16,8 @@ import org.jline.console.impl.SystemRegistryImpl;
 import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.widget.TailTipWidgets;
@@ -89,7 +91,7 @@ public class CliCommands implements Callable<Integer> {
         terminal.writer().println(CommandLine.Help.Ansi.AUTO.string("@|yellow Working in:|@ @|white " + workDir.getAbsolutePath() + "|@"));
         terminal.writer().println(CommandLine.Help.Ansi.AUTO.string("@|yellow You can change this by supplying the --workdir option on startup.|@"));
         terminal.writer().println();
-        terminal.writer().println("Welcome! Enter your command below. Try 'help' to get help.");
+        terminal.writer().println("Welcome! Enter your command below. Try 'help' for a list of commands.");
 
         String line;
         while (true) {
@@ -113,6 +115,10 @@ public class CliCommands implements Callable<Integer> {
     private SystemRegistry setup() throws IOException {
         Parser parser = new DefaultParser();
         terminal = TerminalBuilder.builder().dumb(true).color(true).build();
+
+        if (terminal.getWidth() == 0 || terminal.getHeight() == 0) {
+            terminal.setSize(new Size(120, 40)); // hard coded terminal size when redirecting
+        }
 
         // initialize picocli
         PicocliCommands.PicocliCommandsFactory factory = new PicocliCommands.PicocliCommandsFactory();

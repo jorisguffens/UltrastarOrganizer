@@ -1,10 +1,7 @@
 package be.jorisg.ultrastarorganizer.commands.reformat;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
-import be.jorisg.ultrastarorganizer.domain.Library;
-import be.jorisg.ultrastarorganizer.domain.NoteLyricCollection;
-import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
-import be.jorisg.ultrastarorganizer.domain.TrackInfo;
+import be.jorisg.ultrastarorganizer.domain.*;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -55,9 +52,10 @@ public class ReformatCommand implements Runnable {
         // update title;
         String title = ti.title();
         title = title.replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
-        title = title.replaceAll(Pattern.quote("  "), "").trim();
+        title = title.replaceAll(Pattern.quote("  "), " ").trim();
         ti.setTitle(title);
 
+        // process files
         audio(ti);
         video(ti);
         coverImage(ti);
@@ -88,6 +86,10 @@ public class ReformatCommand implements Runnable {
             long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
             if (blocks < 2) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": duet without singer indication. |@"));
+            }
+            else if ( nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR) ) {
+                ti.rewriteLyrics();
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": invalid duet format, lyrics will be rewritten. |@"));
             }
         }
 

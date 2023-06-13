@@ -62,15 +62,21 @@ public class AutomatchCommand implements Runnable {
             return;
         }
 
+        File target = new File(td.directory(), main.safeName() + ".mp3");
+        if ( target.exists() ) {
+            reformat.process(main);
+            return;
+        }
+
         SearchEngine.SearchResult<File> result = engine.searchOne(main.safeName());
-        if (result == null ) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: No match found for " + main.safeName() + "|@"));
+        if (result == null || result.pctMatch() < minPercentMatch / 2 ) {
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: No audio file match found for \"" + main.safeName() + "\"|@"));
             return;
         }
 
         if ( result.pctMatch() < minPercentMatch || result.match() < 1 ) {
-            String s = String.format("@|yellow WARNING: Best match for %s has a score of (%.2f) which is below the treshold of %.2f:\n\t%s|@",
-                    main.safeName(), result.pctMatch(), minPercentMatch, result.option().getName());
+            String s = String.format("@|yellow WARNING: Best audio file match for \"%s\" has a score of (%.2f) which is below the treshold of %.2f:\n\t%s|@",
+                        main.safeName(), result.pctMatch(), minPercentMatch, result.option().getName());
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(s));
             return;
         }
@@ -78,11 +84,11 @@ public class AutomatchCommand implements Runnable {
         engine.removeIndex(result.option());
 
         if ( dryRun ) {
-            UltrastarOrganizer.out.printf("Found file for track %s with score %.2f:\n\t%s\n", main.name(), result.match(), result.option().getName());
+            UltrastarOrganizer.out.printf("Found audio file for track \"%s\" with score %.2f:\n\t%s\n", main.name(), result.match(), result.option().getName());
             return;
         }
 
-        FileUtils.moveFile(result.option(), new File(td.directory(), main.safeName() + ".mp3"));
+        FileUtils.moveFile(result.option(), target);
         reformat.process(main);
     }
 

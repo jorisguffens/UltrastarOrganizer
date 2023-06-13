@@ -22,7 +22,7 @@ repositories {
 dependencies {
     implementation 'info.picocli:picocli:4.6.3'
     implementation 'info.picocli:picocli-shell-jline3:4.6.3'
-    implementation 'org.jline:jline:3.21.0'
+    implementation 'org.jline:jline:3.22.0'
     implementation 'org.fusesource.jansi:jansi:2.4.0'
 
     implementation 'me.tongfei:progressbar:0.9.3'

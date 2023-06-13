@@ -12,10 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class TrackInfo {
@@ -44,7 +41,11 @@ public class TrackInfo {
     }
 
     public String safeName() {
-        return safeArtist() + " - " + safeTitle();
+        String str = safeArtist() + " - " + safeTitle();
+        while (str.endsWith(".")) {
+            str = str.substring(0, str.length() - 1);
+        }
+        return str;
     }
 
     public String name() {
@@ -58,7 +59,7 @@ public class TrackInfo {
                 && headers.get("VIDEO").contains("p2=");
         boolean noteLyricsCheck = false;
         try {
-            noteLyricsCheck =  noteLyrics().noteLyricBlocks().size() > 1;
+            noteLyricsCheck = noteLyrics().noteLyricBlocks().size() > 1;
         } catch (Exception e) {
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                     "@|red ERROR: " + safeName() + ": " + e.getMessage() + "|@"));
@@ -180,7 +181,6 @@ public class TrackInfo {
 
     public void save() {
         try (FileWriter fw = new FileWriter(file, charset)) {
-
             // headers
             for (String header : headers.keySet().stream().sorted().toList()) {
                 String line = "#" + header.toUpperCase() + ":" + headers.get(header.toUpperCase());
@@ -199,6 +199,13 @@ public class TrackInfo {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void rewriteLyrics() {
+        NoteLyricCollection nlc = noteLyrics();
+
+        noteLyricLines.clear();
+        noteLyricLines.addAll(nlc.toStringList());
     }
 
     public static TrackInfo load(File file) {
