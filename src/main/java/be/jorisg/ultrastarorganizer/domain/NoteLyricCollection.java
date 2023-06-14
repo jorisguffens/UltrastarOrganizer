@@ -46,7 +46,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
 
         NoteLyricBlock.Singer singer = null;
         NoteLyricBlock.DuetFormat format = NoteLyricBlock.DuetFormat.NONE;
-        int beat = 0;
+        int beat = Integer.MIN_VALUE;
 
         for (String line : noteLyrics) {
             if (line.startsWith("E")) {
@@ -80,7 +80,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
             NoteLyric noteLyric = NoteLyric.fromString(line);
 
             // duet (alternative format)
-            if (noteLyric.beat() < beat) {
+            if (noteLyric.beat() + 200 < beat) {
                 // first block
                 if ( blocks.isEmpty() ) {
                     format = NoteLyricBlock.DuetFormat.ALTERNATIVE;
