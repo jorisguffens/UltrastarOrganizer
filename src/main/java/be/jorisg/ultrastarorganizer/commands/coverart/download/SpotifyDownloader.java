@@ -53,8 +53,8 @@ public class SpotifyDownloader {
 
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|cyan Downloading cover for " + main.name() + "... |@"));
 
-        String artist = String.join(" & ", main.artists());
-        String title = main.title().replace(" (Duet)", "");
+        String artist = main.safeArtist();
+        String title = main.safeTitle().replace(" (Duet)", "");
         String query = String.format("artist:%s track:%s", artist, title);
 
         SearchTracksRequest.Builder b = spotifyApi.searchTracks(query).limit(1);
@@ -64,6 +64,17 @@ public class SpotifyDownloader {
 
         SearchTracksRequest str = b.build();
         Track[] tracks = str.execute().getItems();
+
+        // fallback to simpler query
+        if ( tracks.length == 0 ) {
+            b = spotifyApi.searchTracks(main.safeName().replace(" (Duet)", "")).limit(1);
+            if ( market != null ) {
+                b = b.market(CountryCode.getByCode(market));
+            }
+
+            str = b.build();
+            tracks = str.execute().getItems();
+        }
 
         if (tracks.length == 0) {
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow \tNo results found.|@"));

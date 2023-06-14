@@ -49,7 +49,7 @@ public class SearchCommand implements Runnable {
 
         if (query != null) {
             SearchEngine<TrackInfo> engine = new SearchEngine<>();
-            UltrastarOrganizer.library().tracks().forEach(ti -> engine.indexer.accept(ti, ti.safeName()));
+            UltrastarOrganizer.library().tracks().forEach(ti -> engine.index(ti, ti.safeName()));
             result = engine.search(query).stream().map(SearchEngine.SearchResult::option).toList();
         } else {
             result = UltrastarOrganizer.library().tracks();

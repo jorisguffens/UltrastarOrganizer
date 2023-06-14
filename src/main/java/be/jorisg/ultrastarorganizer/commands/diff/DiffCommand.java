@@ -11,8 +11,10 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @CommandLine.Command(name = "diff",
         description = "Compare your library against another library or tracklist csv.")
@@ -21,9 +23,18 @@ public class DiffCommand implements Runnable {
     @CommandLine.Parameters(index = "0", description = "The library/tracklist to compare with.")
     private File target;
 
+    @CommandLine.Option(names = {"-d", "--show-duplicates"}, description = "Show all tracks that are both in the current library and the given library.")
+    private boolean showDuplicates = false;
+
+    @CommandLine.Option(names = {"-m", "--show-missing"}, description = "Show all tracks that are in the given library but not in the current library.")
+    private boolean showMissing = false;
+
+    @CommandLine.Option(names = {"-u", "--show-unique"}, description = "Show all tracks that are in the current library but not in the given library.")
+    private boolean showUnique = false;
+
     @Override
     public void run() {
-        if ( !target.exists() ) {
+        if (!target.exists()) {
             UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: The given path '" + target.toPath() + "' does not exist. |@"));
             return;
         }
@@ -50,7 +61,7 @@ public class DiffCommand implements Runnable {
             int artistIndex = headers.get("Artist");
             int titleIndex = headers.get("Title");
 
-            for (CSVRecord rec : parser.getRecords() ) {
+            for (CSVRecord rec : parser.getRecords()) {
                 String name = rec.get(artistIndex) + " - " + rec.get(titleIndex);
                 other.add(name);
             }
@@ -83,36 +94,30 @@ public class DiffCommand implements Runnable {
         duplicate.removeIf(s -> !other.contains(s));
 
         // unique
-        if ( unique.size() > 0 ) {
-            UltrastarOrganizer.out.println();
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|cyan Found " + unique.size() + " unique tracks: |@"));
-
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Found " + unique.size() + " unique tracks. |@"));
+        if (showUnique) {
             unique.forEach(u -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                     "@|green + " + u + "|@")));
+            UltrastarOrganizer.out.println();
         }
 
         // missing
-        if ( missing.size() > 0 ) {
-            UltrastarOrganizer.out.println();
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|cyan Found " + missing.size() + " missing tracks: |@"));
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Found " + missing.size() + " missing tracks. |@"));
+        if (showMissing) {
             missing.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                     "@|red - " + m + "|@")));
+            UltrastarOrganizer.out.println();
         }
 
         // duplicate
-        if ( duplicate.size() > 0 ) {
-            UltrastarOrganizer.out.println();
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|cyan Found " + duplicate.size() + " duplicate tracks: |@"));
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|cyan Found " + duplicate.size() + " duplicate tracks. |@"));
+        if (showDuplicates) {
             duplicate.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|yellow - " + m + "|@")));
-        }
-
-        if ( unique.isEmpty() && missing.isEmpty() && duplicate.isEmpty() ) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|cyan No differences found.|@"));
+                    "@|yellow * " + m + "|@")));
+            UltrastarOrganizer.out.println();
         }
     }
 }
