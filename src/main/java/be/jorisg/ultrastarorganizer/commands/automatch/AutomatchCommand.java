@@ -59,7 +59,7 @@ public class AutomatchCommand implements Runnable {
 
                 File target = new File(td.directory(), main.safeName() + ".mp3");
                 if (target.exists()) {
-                    reformat.process(main);
+                    reformat.process(td, main);
                     continue;
                 }
 
@@ -147,7 +147,7 @@ public class AutomatchCommand implements Runnable {
                 SearchEngine.SearchResult<File> result = results.get(td);
                 File target = new File(td.directory(), main.safeName() + ".mp3");
                 FileUtils.copyFile(result.option(), target);
-                reformat.process(main);
+                reformat.process(td, main);
 
                 copied.add(result.option());
             } catch (IOException e) {

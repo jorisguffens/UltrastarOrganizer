@@ -20,7 +20,7 @@ public class CSVTracklistGenerator implements TracklistGenerator {
             pw.write("SEP=,\n");
 
             CSVPrinter printer = new CSVPrinter(pw, CSVFormat.DEFAULT.withHeader(
-                    "Artist", "Title", "IsDuet", "HasCoverImage", "HasBackgroundImage", "HasVideo"));
+                    "Artist", "Title", "Year", "Genre", "IsDuet", "HasCoverImage", "HasBackgroundImage", "HasVideo"));
 
             for (TrackInfo track : tracks) {
                 String artist = ascii(track.artist());
@@ -29,6 +29,8 @@ public class CSVTracklistGenerator implements TracklistGenerator {
                 printer.printRecord(
                         artist,
                         title,
+                        track.header("YEAR").orElse(""),
+                        track.header("GENRE").orElse(""),
                         track.isDuet(),
                         track.coverImageFile() != null,
                         track.backgroundImageFile() != null,

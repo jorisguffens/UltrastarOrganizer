@@ -36,7 +36,7 @@ public class ReformatCommand implements Runnable {
     public void process(TrackDirectory td) throws Exception {
         for (TrackInfo ti : td.tracks()) {
             try {
-                process(ti);
+                process(td, ti);
             } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
             }
@@ -48,7 +48,7 @@ public class ReformatCommand implements Runnable {
         }
     }
 
-    public void process(TrackInfo ti) throws IOException {
+    public void process(TrackDirectory td, TrackInfo ti) throws IOException {
         // update title;
         String title = ti.title();
         title = title.replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
@@ -81,24 +81,29 @@ public class ReformatCommand implements Runnable {
             e.printStackTrace(UltrastarOrganizer.out);
         }
 
-        // update duet info
-        if ( ti.isDuet() && nlc != null) {
+        if ( nlc != null ) {
             long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
-            if (blocks < 2) {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": duet without singer indication. |@"));
+
+            // update duet info
+            if (ti.isDuet() ) {
+                if (blocks < 2) {
+                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": duet without singer indication. |@"));
+                } else if (nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR)) {
+                    ti.convertDuetFormat();
+                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": invalid duet format, lyrics will be rewritten. |@"));
+                }
             }
-            else if ( nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR) ) {
-                ti.rewriteLyrics();
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": invalid duet format, lyrics will be rewritten. |@"));
+
+            // detect duet format
+            if ( !ti.isDuet() && blocks > 1 && td.tracks().stream().noneMatch(TrackInfo::isDuet) ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": is not a duet but contains multiple singer blocks. |@"));
             }
         }
-
         // update TrackInfo txt file name
-        if (!ti.file().getName().equals(ti.safeName() + ".txt")) {
-            String name = ti.safeName();
-            if ( ti.isDuet() ) name += " (Duet)";
-            File target = new File(ti.parentDirectory(), name + ".txt");
-
+        String name = ti.safeName();
+        if ( ti.isDuet() ) name += " (Duet)";
+        File target = new File(ti.parentDirectory(), name + ".txt");
+        if ( !ti.file().equals(target) ) {
             int i = 1;
             while (target.exists()) {
                 target = new File(ti.parentDirectory(), name + " (" + i + ").txt");

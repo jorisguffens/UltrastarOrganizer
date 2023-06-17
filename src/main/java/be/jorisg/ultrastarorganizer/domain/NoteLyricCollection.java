@@ -91,7 +91,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
                 block.clear();
 
                 // go to next singer
-                singer = NoteLyricBlock.Singer.values()[singer.ordinal() + 1];
+                singer = NoteLyricBlock.Singer.values()[Math.min(singer.ordinal() + 1, NoteLyricBlock.Singer.values().length - 1)];
             }
 
             block.add(noteLyric);

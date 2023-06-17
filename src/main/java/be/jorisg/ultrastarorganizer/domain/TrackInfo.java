@@ -1,10 +1,8 @@
 package be.jorisg.ultrastarorganizer.domain;
 
-import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import org.apache.any23.encoding.TikaEncodingDetector;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,22 +50,29 @@ public class TrackInfo {
         return artist() + " - " + title();
     }
 
+    public Optional<String> header(String header) {
+        String value = headers.get(header);
+        if ( value == null || value.trim().equals("") ) {
+            return Optional.empty();
+        }
+        return Optional.of(value);
+    }
+
     public boolean isDuet() {
-        boolean headerCheck = headers.containsKey("DUETSINGERP1") && !headers.get("DUETSINGERP1").equals("")
-                && headers.containsKey("DUETSINGERP2") && !headers.get("DUETSINGERP2").equals("");
+        boolean headerCheck = (header("P1").isPresent() || header("DUETSINGERP1").isPresent())
+                && (header("P2").isPresent() || header("DUETSINGERP2").isPresent());
         boolean videoHeaderCheck = headers.containsKey("VIDEO") && headers.get("VIDEO").contains("p1=")
                 && headers.get("VIDEO").contains("p2=");
-        boolean noteLyricsCheck = false;
-        try {
-            noteLyricsCheck = noteLyrics().noteLyricBlocks().size() > 1;
-        } catch (Exception e) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|red ERROR: " + safeName() + ": " + e.getMessage() + "|@"));
-        }
+//        boolean noteLyricsCheck = false;
+//        try {
+//            noteLyricsCheck = noteLyrics().noteLyricBlocks().size() > 1;
+//        } catch (Exception e) {
+//            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+//                    "@|red ERROR: " + safeName() + ": " + e.getMessage() + "|@"));
+//        }
         return headerCheck
                 || videoHeaderCheck
-                || title().contains("(Duet)")
-                || noteLyricsCheck;
+                || title().contains("(Duet)");
     }
 
     private String safe(String str) {
@@ -201,8 +206,15 @@ public class TrackInfo {
         }
     }
 
-    public void rewriteLyrics() {
+    public void convertDuetFormat() {
         NoteLyricCollection nlc = noteLyrics();
+
+        if (headers.containsKey("DUETSINGERP1")) {
+            headers.put("DUETSINGERP1", "P1");
+        }
+        if (headers.containsKey("DUETSINGERP2")) {
+            headers.put("DUETSINGERP2", "P2");
+        }
 
         noteLyricLines.clear();
         noteLyricLines.addAll(nlc.toStringList());
