@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Utils {
@@ -81,6 +83,34 @@ public class Utils {
             return true;
         } catch (IOException ignored) {}
         return false;
+    }
+
+    public static Runnable uncheck(ThrowingRunnable r) {
+        return () -> {
+            try {
+                r.run();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    public static <T> Consumer<T> uncheck(ThrowingConsumer<T> c) {
+        return (v) -> {
+            try {
+                c.accept(v);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    public interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    public interface ThrowingConsumer<T> {
+        void accept(T t) throws Exception;
     }
 
 }

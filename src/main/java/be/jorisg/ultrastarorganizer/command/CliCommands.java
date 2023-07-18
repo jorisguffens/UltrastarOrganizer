@@ -2,32 +2,31 @@ package be.jorisg.ultrastarorganizer.command;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.commands.automatch.AutomatchCommand;
+import be.jorisg.ultrastarorganizer.commands.doctor.DoctorCommand;
 import be.jorisg.ultrastarorganizer.commands.coverart.CoverArtCommand;
 import be.jorisg.ultrastarorganizer.commands.diff.DiffCommand;
+import be.jorisg.ultrastarorganizer.commands.video.VideoCommand;
+import be.jorisg.ultrastarorganizer.commands.video.download.VideoDownloadCommand;
+import be.jorisg.ultrastarorganizer.commands.merge.MergeCommand;
 import be.jorisg.ultrastarorganizer.commands.minimize.MinimizeCommand;
 import be.jorisg.ultrastarorganizer.commands.reformat.ReformatCommand;
 import be.jorisg.ultrastarorganizer.commands.search.SearchCommand;
 import be.jorisg.ultrastarorganizer.commands.stats.StatsCommand;
 import be.jorisg.ultrastarorganizer.commands.tracklist.TracklistCommand;
 import org.apache.commons.io.IOUtils;
-import org.apache.poi.ss.formula.functions.MinaMaxa;
 import org.jline.console.SystemRegistry;
 import org.jline.console.impl.SystemRegistryImpl;
-import org.jline.keymap.KeyMap;
 import org.jline.reader.*;
 import org.jline.reader.impl.DefaultParser;
-import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.widget.TailTipWidgets;
 import picocli.CommandLine;
 import picocli.shell.jline3.PicocliCommands;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -53,7 +52,10 @@ import java.util.concurrent.Callable;
                 DiffCommand.class,
                 SearchCommand.class,
                 MinimizeCommand.class,
-                StatsCommand.class
+                StatsCommand.class,
+                VideoCommand.class,
+                MergeCommand.class,
+                DoctorCommand.class
         })
 public class CliCommands implements Callable<Integer> {
 
@@ -143,12 +145,12 @@ public class CliCommands implements Callable<Integer> {
                 .build();
 
         // enable tailtip widgets
-        TailTipWidgets widgets = new TailTipWidgets(in, systemRegistry::commandDescription, 5, TailTipWidgets.TipType.COMPLETER);
-        widgets.enable();
+//        TailTipWidgets widgets = new TailTipWidgets(in, systemRegistry::commandDescription, 5, TailTipWidgets.TipType.COMPLETER);
+//        widgets.enable();
 
         // add key binding for toggling tailtips
-        KeyMap<Binding> keyMap = in.getKeyMaps().get("main");
-        keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
+//        KeyMap<Binding> keyMap = in.getKeyMaps().get("main");
+//        keyMap.bind(new Reference("tailtip-toggle"), KeyMap.alt("s"));
 
         return systemRegistry;
     }

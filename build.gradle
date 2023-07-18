@@ -13,6 +13,7 @@ repositories {
     mavenCentral()
 
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://jitpack.io' }
 
     flatDir {
         dirs 'libs'
@@ -39,9 +40,12 @@ dependencies {
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.1.0'
 
 //    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    implementation 'com.github.sealedtx:java-youtube-downloader:3.2.3'
 
     // http://www.sauronsoftware.it/projects/jave/download.php
-    implementation name: 'jave-1.0.2'
+//    implementation name: 'jave-1.0.2'
+    implementation 'ws.schild:jave-core:3.3.1'
+    implementation 'ws.schild:jave-nativebin-win64:3.3.1'
 }
 
 jar {

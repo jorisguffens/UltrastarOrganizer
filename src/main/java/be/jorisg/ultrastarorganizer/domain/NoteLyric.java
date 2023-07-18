@@ -36,7 +36,7 @@ public record NoteLyric(NoteType type, int beat, int duration, int note, String 
     //
 
     public enum NoteType {
-        NORMAL(":"), GOLDEN("*"), FREESTYLE("F"), BREAK("-");
+        NORMAL(":"), GOLDEN("*"), FREESTYLE("F"), BREAK("-"), RAP("R"), GOLDEN_RAP("G");
 
         final String key;
 
@@ -58,7 +58,7 @@ public record NoteLyric(NoteType type, int beat, int duration, int note, String 
 
         if (args[0].length() > 1) {
             if ( !args[0].startsWith("-") ) {
-                throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'");
+                throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'. ");
             }
             int beat = Integer.parseInt(args[0].substring(1));
             return new NoteLyric(NoteType.BREAK, beat, 0, 0, "");
@@ -66,10 +66,15 @@ public record NoteLyric(NoteType type, int beat, int duration, int note, String 
 
         NoteType type = NoteType.fromKey(args[0]);
         if (type == null) {
-            throw new IllegalArgumentException("Invalid note type for line '" + str + "'");
+            throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'. Unknown note type: " + args[0] + ".");
         }
 
-        int beat = Integer.parseInt(args[1]);
+        int beat;
+        try {
+            beat = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid note lyric line: '" + str + "'. Invalid beat: " + args[1] + ".");
+        }
         if (type == NoteType.BREAK) {
             return new NoteLyric(type, beat, 0, 0, "");
         }

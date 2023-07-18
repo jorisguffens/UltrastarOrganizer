@@ -1,5 +1,6 @@
 package be.jorisg.ultrastarorganizer.domain;
 
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import org.apache.any23.encoding.TikaEncodingDetector;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -80,7 +81,7 @@ public class TrackInfo {
         str = str.replace("/", "-");
         str = Normalizer.normalize(str, Normalizer.Form.NFKD); // split a character with some fancy stuff in 2 characters
         str = str.replaceAll("[^\\p{ASCII}]", ""); // remove the fancy stuff
-        str = str.replace("?", ""); // illegal filename characters
+        str = str.replaceAll("[?:]", ""); // illegal filename characters
         return str;
     }
 
@@ -141,6 +142,10 @@ public class TrackInfo {
     }
 
     public void setBackgroundImageFileName(String name) {
+        if ( name == null ) {
+            headers.remove("BACKGROUND");
+            return;
+        }
         headers.put("BACKGROUND", name);
     }
 
@@ -149,6 +154,10 @@ public class TrackInfo {
     }
 
     public void setCoverImageFileName(String name) {
+        if ( name == null ) {
+            headers.remove("COVER");
+            return;
+        }
         headers.put("COVER", name);
     }
 
@@ -157,6 +166,10 @@ public class TrackInfo {
     }
 
     public void setAudioFileName(String name) {
+        if ( name == null ) {
+            headers.remove("MP3");
+            return;
+        }
         headers.put("MP3", name);
     }
 
@@ -165,6 +178,10 @@ public class TrackInfo {
     }
 
     public void setVideoFileName(String name) {
+        if ( name == null ) {
+            headers.remove("VIDEO");
+            return;
+        }
         headers.put("VIDEO", name);
     }
 
@@ -236,7 +253,9 @@ public class TrackInfo {
         }
 
         Map<String, String> headers = new HashMap<>();
-        for (String line : contents) {
+        int i = 0;
+        for ( ; i < contents.size(); i++) {
+            String line = contents.get(i);
             if (!line.startsWith("#")) {
                 break;
             }
@@ -246,7 +265,7 @@ public class TrackInfo {
             headers.put(key.toUpperCase(), value);
         }
 
-        List<String> noteLyricLines = contents.subList(headers.size(), contents.size());
+        List<String> noteLyricLines = contents.subList(i, contents.size());
 
         if (headers.size() == 0 || !headers.containsKey("ARTIST") || !headers.containsKey("TITLE")) {
             throw new RuntimeException("Required headers are missing from file.");

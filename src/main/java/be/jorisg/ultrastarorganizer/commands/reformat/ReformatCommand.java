@@ -1,7 +1,9 @@
 package be.jorisg.ultrastarorganizer.commands.reformat;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
-import be.jorisg.ultrastarorganizer.domain.*;
+import be.jorisg.ultrastarorganizer.domain.Library;
+import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
+import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -29,6 +31,7 @@ public class ReformatCommand implements Runnable {
                         "@|red ERROR: " + e.getMessage() + "|@"));
             }
         }
+
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 "@|cyan Library has been reformatted. |@"));
     }
@@ -44,6 +47,7 @@ public class ReformatCommand implements Runnable {
 
         TrackInfo main = td.originalTrack();
         if (!td.directory().getName().equals(main.safeName())) {
+            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow Moving '" + td.directory().getName() + "' to '" + main.safeName() + "'.|@"));
             td.moveTo(new File(td.directory().getParentFile(), main.safeName()));
         }
     }
@@ -61,49 +65,11 @@ public class ReformatCommand implements Runnable {
         coverImage(ti);
         backgroundImage(ti);
 
-        // fix negative lyrics start
-        NoteLyricCollection nlc = null;
-        try {
-            nlc = ti.noteLyrics();
-            int beat = nlc.noteLyricBlocks().get(0).noteLyrics().get(0).beat();
-            if (beat < 0) {
-                ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                        "@|cyan Shifting beats to a positive number for " + ti.safeName() + "|@"));
-            }
-            if ( nlc.noteLyricBlocks().stream().anyMatch(nlb -> !nlb.isValid()) ) {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                        "@|yellow WARNING: A note block is invalid in " + ti.safeName() + ". |@"));
-            }
-        } catch (Exception e) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + ti.safeName() + ": " +
-                    e.getClass().getSimpleName() + ": " + e.getMessage() + "|@"));
-            e.printStackTrace(UltrastarOrganizer.out);
-        }
-
-        if ( nlc != null ) {
-            long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
-
-            // update duet info
-            if (ti.isDuet() ) {
-                if (blocks < 2) {
-                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": duet without singer indication. |@"));
-                } else if (nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR)) {
-                    ti.convertDuetFormat();
-                    UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": invalid duet format, lyrics will be rewritten. |@"));
-                }
-            }
-
-            // detect duet format
-            if ( !ti.isDuet() && blocks > 1 && td.tracks().stream().noneMatch(TrackInfo::isDuet) ) {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.safeName() + ": is not a duet but contains multiple singer blocks. |@"));
-            }
-        }
         // update TrackInfo txt file name
         String name = ti.safeName();
-        if ( ti.isDuet() ) name += " (Duet)";
+        if (ti.isDuet()) name += " (Duet)";
         File target = new File(ti.parentDirectory(), name + ".txt");
-        if ( !ti.file().equals(target) ) {
+        if (!ti.file().equals(target)) {
             int i = 1;
             while (target.exists()) {
                 target = new File(ti.parentDirectory(), name + " (" + i + ").txt");
@@ -118,34 +84,14 @@ public class ReformatCommand implements Runnable {
     }
 
     private void audio(TrackInfo ti) throws IOException {
-        if (ti.audioFile() == null) {
-            missing(ti, Utils::verifyAudio, "mp3")
-                    .ifPresentOrElse(
-                            f -> ti.setAudioFileName(f.getName()),
-                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.name() + ": No audio file found.|@"))
-                    );
-        }
-
         rename(ti.audioFile(), ti.safeName(), ti::setAudioFileName);
     }
 
     private void video(TrackInfo ti) throws IOException {
-        if (ti.videoFile() == null) {
-            missing(ti, f -> true, Utils.VIDEO_EXT)
-                    .ifPresent(file -> ti.setVideoFileName(file.getName()));
-        }
-
         rename(ti.videoFile(), ti.safeName(), ti::setVideoFileName);
     }
 
     private void coverImage(TrackInfo ti) throws IOException {
-        if (ti.coverImageFile() == null) {
-            missing(ti, f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
-                    .ifPresentOrElse(
-                            f -> ti.setCoverImageFileName(f.getName()),
-                            () -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|yellow WARNING: " + ti.name() + ": No cover image found.|@")));
-        }
-
         rename(ti.coverImageFile(), ti.safeName() + " [CO]", ti::setCoverImageFileName);
     }
 
@@ -177,7 +123,7 @@ public class ReformatCommand implements Runnable {
         }
 
         File target = new File(file.getParentFile(), name);
-        if ( target.exists() ) {
+        if (target.exists()) {
             return;
         }
 
