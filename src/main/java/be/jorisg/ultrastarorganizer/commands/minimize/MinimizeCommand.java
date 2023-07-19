@@ -2,16 +2,12 @@ package be.jorisg.ultrastarorganizer.commands.minimize;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
+import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import picocli.CommandLine;
-import ws.schild.jave.Encoder;
 import ws.schild.jave.MultimediaObject;
-import ws.schild.jave.encode.AudioAttributes;
-import ws.schild.jave.encode.EncodingAttributes;
-import ws.schild.jave.encode.VideoAttributes;
 
 import java.io.File;
-import java.util.Map;
 
 import static be.jorisg.ultrastarorganizer.utils.Utils.shrinkImage;
 
@@ -81,57 +77,22 @@ public class MinimizeCommand implements Runnable {
     }
 
     public static void video(TrackInfo ti) {
-        File video = ti.videoFile();
-        MultimediaObject mo;
-        try {
-            mo = new MultimediaObject(video);
-        } catch (Exception ex) {
-            return;
-        }
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                "@|yellow Compressing video of|@ @|magenta " + ti.name() + "|@"));
 
-        try {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|yellow Compressing video of " + ti.name() + "... |@"));
+        File src = ti.videoFile();
+        Utils.shrinkVideo(ti);
+        File dest = ti.videoFile();
 
-            File dest = new File(ti.parentDirectory(), ti.safeName() + " [tmp].mp4");
-            Encoder encoder = new Encoder();
-            EncodingAttributes attrs = new EncodingAttributes()
-                    .setOutputFormat("mp4")
-                    .setVideoAttributes(new VideoAttributes().setCodec("h264"))
-                    .setAudioAttributes(new AudioAttributes());
-            encoder.encode(mo, dest, attrs);
-
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
-                    "@|yellow   -> Reduced filesize of %s from %.2f MB to %.2f MB.|@",
-                    ti.name(),
-                    FileUtils.sizeOf(ti.videoFile()) / 1024.d / 1024.d,
-                    FileUtils.sizeOf(dest) / 1024.d / 1024.d)));
-
-            video.delete();
-
-            File target = new File(ti.parentDirectory(), ti.safeName() + ".mp4");
-            dest.renameTo(target);
-
-            ti.setVideoFileName(target.getName());
-            ti.save();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // TODO shrink
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
+                "@|yellow   -> Reduced filesize of %s from %.2f MB to %.2f MB.|@",
+                ti.name(),
+                FileUtils.sizeOf(src) / 1024.d / 1024.d,
+                FileUtils.sizeOf(dest) / 1024.d / 1024.d)));
     }
 
     private void audio(TrackInfo ti) {
-        File audio = ti.audioFile();
-        MultimediaObject mo;
-        try {
-            mo = new MultimediaObject(audio);
-            mo.getInfo().getAudio().getDecoder();
-        } catch (Exception ex) {
-            return;
-        }
 
-        // TODO shrink
     }
 
 

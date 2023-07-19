@@ -1,8 +1,10 @@
 package be.jorisg.ultrastarorganizer.commands.video.download;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
-import be.jorisg.ultrastarorganizer.commands.minimize.MinimizeCommand;
+import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
+import be.jorisg.ultrastarorganizer.utils.Tasker;
+import be.jorisg.ultrastarorganizer.utils.Utils;
 import com.github.kiulian.downloader.Config;
 import com.github.kiulian.downloader.YoutubeDownloader;
 import com.github.kiulian.downloader.downloader.request.RequestSearchResult;
@@ -20,7 +22,11 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 @CommandLine.Command(name = "download",
@@ -54,14 +60,63 @@ public class VideoDownloadCommand implements Runnable {
 
     @Override
     public void run() {
-        YoutubeDownloader downloader = init();
+        YoutubeDownloader dl = init();
 
         UltrastarOrganizer.refresh();
-        UltrastarOrganizer.library().tracks().forEach(ti -> process(downloader, ti));
+
+        PrintStream original = System.out;
+        System.setOut(new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) {
+                // do nothing
+            }
+        }));
+
+        Tasker tasker = new Tasker(tasks(dl), 5);
+        tasker.start();
+//        tasker.join();
     }
 
-    private void process(YoutubeDownloader dl, TrackInfo ti) {
-        if ( ti.videoFile() != null && ti.videoFile().exists() ) {
+    private Iterator<Tasker.Task> tasks(YoutubeDownloader dl) {
+        return new Iterator<>() {
+            private int index = 0;
+            private final List<TrackDirectory> dirs = UltrastarOrganizer.library().trackDirectories();
+
+            @Override
+            public boolean hasNext() {
+                return index < dirs.size() - 1;
+            }
+
+            @Override
+            public Tasker.Task next() {
+                if (!hasNext()) {
+                    throw new IndexOutOfBoundsException();
+                }
+                final TrackDirectory td = dirs.get(index++);
+                return new Tasker.Task(td.originalTrack().name(), () -> {
+                    List<String> msg = new ArrayList<>();
+                    process(dl, td, msg);
+
+                    if (!msg.isEmpty()) {
+                        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
+                                "@|cyan Information about|@ @|magenta %s|@@|cyan :|@", td.directory().getName())));
+                        msg.forEach(s -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO
+                                .string(String.format("@|yellow  - %s|@", s))));
+                    }
+                });
+            }
+        };
+    }
+
+    private void process(YoutubeDownloader dl, TrackDirectory td, List<String> msg) {
+        TrackInfo ti = td.originalTrack();
+        if (ti.videoFile() != null && ti.videoFile().exists()) {
+            return;
+        }
+
+        File dest = new File(ti.parentDirectory(), ti.safeName() + ".mp4");
+        if (dest.exists()) {
+            msg.add("Destination video file exists but was not listed in track info.");
             return;
         }
 
@@ -69,50 +124,56 @@ public class VideoDownloadCommand implements Runnable {
                 .type(TypeField.VIDEO)
                 .forceExactQuery(true)
                 .sortBy(SortField.RELEVANCE);
-
         SearchResult result = dl.search(rsr).data();
+
         List<SearchResultVideoDetails> videos = result.videos();
         if (videos.isEmpty()) {
-            UltrastarOrganizer.out.printf(CommandLine.Help.Ansi.AUTO
-                    .string("@|red ERROR: No valid video found for %s.|@\n"), ti.safeName());
+            msg.add("No valid video found.");
             return;
         }
 
         RequestVideoInfo request = new RequestVideoInfo(videos.get(0).videoId());
         VideoInfo video = dl.getVideoInfo(request).data();
+
+        if (video == null) {
+            msg.add("Failed to retrieve video information.");
+            return;
+        }
         VideoFormat videoFormat = video.videoFormats().stream()
                 .filter(vf -> vf.videoQuality().ordinal() <= VideoQuality.hd1080.ordinal())
                 .max(Comparator.comparingInt(vf -> vf.videoQuality().ordinal()))
                 .orElseThrow();
 
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
-                "@|yellow Found video for|@ @|magenta %s|@@|yellow :|@", ti.name())));
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
-                " ".repeat(16) + "@|magenta %s: %s|@ @|red (%s) |@",
-                video.details().author(), video.details().title(), videoFormat.qualityLabel())));
+        msg.add(String.format("Found video: %s: %s|@ @|red (%s) |@@|green ",
+                video.details().author(), video.details().title(), videoFormat.qualityLabel()));
 
-        if ( dryRun ) {
+        if (dryRun) {
             return;
         }
 
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
-                "@|yellow Downloading video for |@ @|magenta \"%s\"|@ @|yellow .|@", ti.name())));
         RequestVideoFileDownload rvfd = new RequestVideoFileDownload(videoFormat);
         File src = dl.downloadVideoFile(rvfd).data();
 
+        msg.add("Downloaded video.");
+
         try {
-            File dest = new File(ti.parentDirectory(), ti.safeName() + ".mp4");
             FileUtils.moveFile(src, dest);
 
             ti.setVideoFileName(dest.getName());
-
-            MinimizeCommand.video(ti);
-
             ti.save();
+
+            Utils.shrinkVideo(ti);
+
+            msg.add("Compressed video.");
+
+            for (TrackInfo t : td.tracks()) {
+                if (t.equals(ti)) continue;
+                t.setVideoFileName(dest.getName());
+                t.save();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 
 }

@@ -118,7 +118,7 @@ public class DoctorCommand implements Runnable {
     private void file(@NotNull File file,
                       @NotNull Supplier<File> finder,
                       @NotNull Consumer<String> setter,
-                      @NotNull Utils.ThrowingConsumer<File> tester,
+                      @NotNull ThrowingConsumer<File> tester,
                       @NotNull String name,
                       @NotNull List<String> issues) {
 
@@ -200,6 +200,11 @@ public class DoctorCommand implements Runnable {
         return Utils.findFilesByExtensions(ti.parentDirectory(), extensions).stream()
                 .filter(filter)
                 .findFirst();
+    }
+
+
+    private interface ThrowingConsumer<T> {
+        void accept(T t) throws Exception;
     }
 
 }

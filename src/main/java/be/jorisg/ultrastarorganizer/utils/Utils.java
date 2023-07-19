@@ -1,7 +1,16 @@
 package be.jorisg.ultrastarorganizer.utils;
 
+import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
+import be.jorisg.ultrastarorganizer.domain.TrackInfo;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.Tika;
+import picocli.CommandLine;
+import ws.schild.jave.Encoder;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.encode.AudioAttributes;
+import ws.schild.jave.encode.EncodingAttributes;
+import ws.schild.jave.encode.VideoAttributes;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -85,32 +94,34 @@ public class Utils {
         return false;
     }
 
-    public static Runnable uncheck(ThrowingRunnable r) {
-        return () -> {
-            try {
-                r.run();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
+    public static void shrinkVideo(TrackInfo ti) {
+        File video = ti.videoFile();
+        MultimediaObject mo;
+        try {
+            mo = new MultimediaObject(video);
+        } catch (Exception ex) {
+            return;
+        }
 
-    public static <T> Consumer<T> uncheck(ThrowingConsumer<T> c) {
-        return (v) -> {
-            try {
-                c.accept(v);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
+        try {
+            File dest = new File(ti.parentDirectory(), ti.safeName() + " [tmp].mp4");
+            Encoder encoder = new Encoder();
+            EncodingAttributes attrs = new EncodingAttributes()
+                    .setOutputFormat("mp4")
+                    .setVideoAttributes(new VideoAttributes().setCodec("h264"))
+                    .setAudioAttributes(new AudioAttributes());
+            encoder.encode(mo, dest, attrs);
 
-    public interface ThrowingRunnable {
-        void run() throws Exception;
-    }
+            video.delete();
 
-    public interface ThrowingConsumer<T> {
-        void accept(T t) throws Exception;
+            File target = new File(ti.parentDirectory(), ti.safeName() + ".mp4");
+            dest.renameTo(target);
+
+            ti.setVideoFileName(target.getName());
+            ti.save();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
