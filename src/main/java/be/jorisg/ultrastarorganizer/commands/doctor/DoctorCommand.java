@@ -9,10 +9,10 @@ import be.jorisg.ultrastarorganizer.utils.Utils;
 import com.drew.lang.annotations.NotNull;
 import org.apache.commons.io.FileUtils;
 import picocli.CommandLine;
-import ws.schild.jave.MultimediaObject;
 
 import javax.imageio.ImageIO;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,30 +30,61 @@ public class DoctorCommand implements Runnable {
     @Override
     public void run() {
         Library library = UltrastarOrganizer.refresh();
-        library.tracks().forEach(this::process);
 
-        // remove empty directories
+        int tracks = 0;
+        int issues = 0;
+
+        for (TrackInfo ti : library.tracks()) {
+            int i = process(ti);
+            if (i > 0) {
+                tracks++;
+                issues += i;
+            }
+        }
+
+        // remove empty directories or directories with corrupt tracks
         for (File f : library.directory().listFiles()) {
-            if (!f.isDirectory() || f.listFiles().length != 0) {
+            if (!f.isDirectory()) {
                 continue;
             }
 
-            if (!dryRun) {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                        "@|yellow " + f.getName() + " is an empty directory -> REMOVED |@"));
-                f.delete();
-            } else {
-                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                        "@|yellow " + f.getName() + " is an empty directory. |@"));
+            try {
+                if (f.listFiles().length == 0) {
+                    if (!dryRun) {
+                        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                                "@|yellow " + f.getName() + " is an empty directory -> REMOVED |@"));
+                        FileUtils.deleteDirectory(f);
+                    } else {
+                        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                                "@|yellow " + f.getName() + " is an empty directory. |@"));
+                    }
+                    continue;
+                }
+
+                if (library.trackDirectories().stream().noneMatch(td -> td.directory().equals(f))) {
+                    if (!dryRun) {
+                        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                                "@|yellow The directory " + f.getName() + " has no tracks -> REMOVED |@"));
+                        FileUtils.deleteDirectory(f);
+                    } else {
+                        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                                "@|yellow The directory " + f.getName() + " has no tracks. |@"));
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
+
+        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                String.format("@|cyan Found %d issues in %d tracks.|@", issues, tracks)));
 
         long size = FileUtils.sizeOfDirectory(library.directory());
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 String.format("@|cyan Your library is %.2f GB in size.|@", size / 1024.d / 1024.d / 1024.d)));
     }
 
-    private void process(TrackInfo ti) {
+    private int process(TrackInfo ti) {
         List<String> issues = new ArrayList<>();
 
         audio(ti, issues);
@@ -63,7 +94,7 @@ public class DoctorCommand implements Runnable {
         lyrics(ti, issues);
 
         if (issues.isEmpty()) {
-            return;
+            return 0;
         }
 
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
@@ -74,22 +105,28 @@ public class DoctorCommand implements Runnable {
         }
 
         ti.save();
+
+        return issues.size();
     }
 
     private void audio(@NotNull TrackInfo ti, @NotNull List<String> issues) {
         file(ti.audioFile(),
                 () -> missing(ti, Utils::verifyAudio, "mp3").orElse(null),
                 ti::setAudioFileName,
-                f -> new MultimediaObject(f).getInfo().getAudio(),
+                f -> {
+                    ;
+                }, //new MultimediaObject(f).getInfo().getAudio(),
                 "Audio file",
                 issues);
     }
 
     private void video(@NotNull TrackInfo ti, @NotNull List<String> issues) {
         file(ti.videoFile(),
-                () -> missing(ti, f -> true, Utils.VIDEO_EXT).orElse(null),
+                () -> missing(ti, Utils::verifyVideo, Utils.VIDEO_EXT).orElse(null),
                 ti::setVideoFileName,
-                f -> new MultimediaObject(f).getInfo().getVideo(),
+                f -> {
+                    ;
+                }, //new MultimediaObject(f).getInfo().getVideo(),
                 "Video file",
                 issues);
     }

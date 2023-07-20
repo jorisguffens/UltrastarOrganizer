@@ -4,16 +4,13 @@ import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.Library;
 import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 @CommandLine.Command(name = "reformat",
@@ -39,7 +36,7 @@ public class ReformatCommand implements Runnable {
     public void process(TrackDirectory td) throws Exception {
         for (TrackInfo ti : td.tracks()) {
             try {
-                process(td, ti);
+                process(ti);
             } catch (Exception e) {
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
             }
@@ -52,8 +49,8 @@ public class ReformatCommand implements Runnable {
         }
     }
 
-    public void process(TrackDirectory td, TrackInfo ti) throws IOException {
-        // update title;
+    public void process(TrackInfo ti) throws IOException {
+        // update title
         String title = ti.title();
         title = title.replaceAll("(?i)[(\\[{]duet[)\\]}]", "").trim();
         title = title.replaceAll(Pattern.quote("  "), " ").trim();
@@ -67,7 +64,9 @@ public class ReformatCommand implements Runnable {
 
         // update TrackInfo txt file name
         String name = ti.safeName();
-        if (ti.isDuet()) name += " (Duet)";
+        if (ti.isDuet()) {
+            name += " (Duet)";
+        }
         File target = new File(ti.parentDirectory(), name + ".txt");
         if (!ti.file().equals(target)) {
             int i = 1;
@@ -96,18 +95,7 @@ public class ReformatCommand implements Runnable {
     }
 
     private void backgroundImage(TrackInfo ti) throws IOException {
-        if (ti.backgroundImageFile() == null) {
-            missing(ti, f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
-                    .ifPresent(f -> ti.setBackgroundImageFileName(f.getName()));
-        }
-
         rename(ti.backgroundImageFile(), ti.safeName() + " [BG]", ti::setBackgroundImageFileName);
-    }
-
-    private Optional<File> missing(TrackInfo ti, Predicate<File> filter, String... extensions) {
-        return Utils.findFilesByExtensions(ti.parentDirectory(), extensions).stream()
-                .filter(filter)
-                .findFirst();
     }
 
     private void rename(File file, String name, Consumer<String> updater) throws IOException {

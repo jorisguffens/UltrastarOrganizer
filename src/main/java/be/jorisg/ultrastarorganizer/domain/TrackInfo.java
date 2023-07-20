@@ -1,6 +1,5 @@
 package be.jorisg.ultrastarorganizer.domain;
 
-import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import org.apache.any23.encoding.TikaEncodingDetector;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -53,7 +52,7 @@ public class TrackInfo {
 
     public Optional<String> header(String header) {
         String value = headers.get(header);
-        if ( value == null || value.trim().equals("") ) {
+        if (value == null || value.trim().equals("")) {
             return Optional.empty();
         }
         return Optional.of(value);
@@ -71,9 +70,7 @@ public class TrackInfo {
 //            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
 //                    "@|red ERROR: " + safeName() + ": " + e.getMessage() + "|@"));
 //        }
-        return headerCheck
-                || videoHeaderCheck
-                || title().contains("(Duet)");
+        return headerCheck || videoHeaderCheck;
     }
 
     private String safe(String str) {
@@ -142,7 +139,7 @@ public class TrackInfo {
     }
 
     public void setBackgroundImageFileName(String name) {
-        if ( name == null ) {
+        if (name == null) {
             headers.remove("BACKGROUND");
             return;
         }
@@ -154,7 +151,7 @@ public class TrackInfo {
     }
 
     public void setCoverImageFileName(String name) {
-        if ( name == null ) {
+        if (name == null) {
             headers.remove("COVER");
             return;
         }
@@ -166,7 +163,7 @@ public class TrackInfo {
     }
 
     public void setAudioFileName(String name) {
-        if ( name == null ) {
+        if (name == null) {
             headers.remove("MP3");
             return;
         }
@@ -178,7 +175,7 @@ public class TrackInfo {
     }
 
     public void setVideoFileName(String name) {
-        if ( name == null ) {
+        if (name == null) {
             headers.remove("VIDEO");
             return;
         }
@@ -206,11 +203,6 @@ public class TrackInfo {
             // headers
             for (String header : headers.keySet().stream().sorted().toList()) {
                 String line = "#" + header.toUpperCase() + ":" + headers.get(header.toUpperCase());
-
-                if (header.equals("TITLE") && isDuet()) {
-                    line += " (Duet)";
-                }
-
                 fw.write(line + "\n");
             }
 
@@ -254,7 +246,7 @@ public class TrackInfo {
 
         Map<String, String> headers = new HashMap<>();
         int i = 0;
-        for ( ; i < contents.size(); i++) {
+        for (; i < contents.size(); i++) {
             String line = contents.get(i);
             if (!line.startsWith("#")) {
                 break;

@@ -162,8 +162,6 @@ public class VideoDownloadCommand implements Runnable {
             ti.setVideoFileName(dest.getName());
             ti.save();
 
-            Utils.shrinkVideo(ti);
-
             msg.add("Compressed video.");
 
             for (TrackInfo t : td.tracks()) {
@@ -171,7 +169,7 @@ public class VideoDownloadCommand implements Runnable {
                 t.setVideoFileName(dest.getName());
                 t.save();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

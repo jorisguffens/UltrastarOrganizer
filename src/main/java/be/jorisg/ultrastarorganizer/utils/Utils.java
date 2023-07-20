@@ -2,34 +2,33 @@ package be.jorisg.ultrastarorganizer.utils;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.tika.Tika;
-import picocli.CommandLine;
-import ws.schild.jave.Encoder;
 import ws.schild.jave.MultimediaObject;
-import ws.schild.jave.encode.AudioAttributes;
-import ws.schild.jave.encode.EncodingAttributes;
-import ws.schild.jave.encode.VideoAttributes;
+import ws.schild.jave.process.ProcessLocator;
+import ws.schild.jave.process.ProcessWrapper;
+import ws.schild.jave.process.ffmpeg.DefaultFFMPEGLocator;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Utils {
 
-    public final static String[] VIDEO_EXT = new String[]{"mp4", "avi", "mkv", "flv", "mov", "mpg", "m4v", "divx"};
+    public final static String[] VIDEO_EXT = new String[]{"mp4", "avi", "mkv", "flv", "mov", "mpg", "m4v", "divx", "webm"};
     public final static String[] IMAGE_EXT = new String[]{"jpg", "png", "jpeg", "jfif"};
 
     private final static Tika tika = new Tika();
+
+    private final static ProcessLocator locator = new DefaultFFMPEGLocator();
 
     public static List<File> findFilesByExtensions(File directory, String... extensions) {
         File[] files = directory.listFiles();
@@ -41,6 +40,16 @@ public class Utils {
             String ext = FilenameUtils.getExtension(file.getName());
             return Arrays.stream(extensions).anyMatch(e -> e.equalsIgnoreCase(ext));
         }).collect(Collectors.toList());
+    }
+
+    public static boolean verifyVideo(File file) {
+        try {
+            String mediaType = tika.detect(file);
+            return mediaType.contains("video/") || mediaType.equals("application/octet-stream");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public static boolean verifyAudio(File file) {
@@ -72,7 +81,7 @@ public class Utils {
 
             double ratio = (double) original.getHeight() / (double) original.getWidth();
             int targetWidth, targetHeight;
-            if ( ratio > 1 ) {
+            if (ratio > 1) {
                 targetWidth = (int) (maxSize / ratio);
                 targetHeight = maxSize;
             } else {
@@ -80,7 +89,7 @@ public class Utils {
                 targetHeight = (int) (maxSize * ratio);
             }
 
-            if ( original.getWidth() < targetWidth || original.getHeight() < targetHeight ) {
+            if (original.getWidth() < targetWidth || original.getHeight() < targetHeight) {
                 return false;
             }
 
@@ -90,38 +99,59 @@ public class Utils {
 
             ImageIO.write(outputImage, "jpeg", outputFile);
             return true;
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
         return false;
     }
 
-    public static void shrinkVideo(TrackInfo ti) {
-        File video = ti.videoFile();
-        MultimediaObject mo;
-        try {
-            mo = new MultimediaObject(video);
-        } catch (Exception ex) {
-            return;
+    public static boolean shrinkVideo(TrackInfo ti) throws Exception {
+        File src = ti.videoFile();
+
+        MultimediaObject mo = new MultimediaObject(src);
+        if (mo.getInfo().getVideo().getDecoder().equals("webm")) {
+            return false;
         }
 
-        try {
-            File dest = new File(ti.parentDirectory(), ti.safeName() + " [tmp].mp4");
-            Encoder encoder = new Encoder();
-            EncodingAttributes attrs = new EncodingAttributes()
-                    .setOutputFormat("mp4")
-                    .setVideoAttributes(new VideoAttributes().setCodec("h264"))
-                    .setAudioAttributes(new AudioAttributes());
-            encoder.encode(mo, dest, attrs);
+        try (ProcessWrapper ffmpeg = locator.createExecutor();) {
+            File dest = new File(ti.parentDirectory(), ti.safeName() + ".min.webm");
+            if (dest.exists()) {
+                return false;
+            }
 
-            video.delete();
+            List.of(
+                    "-i", src.getAbsolutePath(),
+                    "-c:v", "libvpx",
+                    "-b:v", "192KB", // ~11MB filesize per minute
+                    "-crf", "20",
+                    "-f", "webm",
+                    "-y",
+                    dest.getAbsolutePath()
+            ).forEach(ffmpeg::addArgument);
+            ffmpeg.execute();
 
-            File target = new File(ti.parentDirectory(), ti.safeName() + ".mp4");
-            dest.renameTo(target);
+            PrintWriter writer = new PrintWriter(UltrastarOrganizer.out) {
+                @Override
+                public void write(String s) {
+                    if (s.contains("frame")) {
+                        super.write(s);
+                    }
+                }
 
-            ti.setVideoFileName(target.getName());
+            };
+
+            InputStreamReader reader = new InputStreamReader(ffmpeg.getErrorStream());
+            reader.transferTo(writer);
+
+            int exitCode = ffmpeg.getProcessExitCode();
+            if (exitCode != 0) {
+                throw new RuntimeException("Exit code of ffmpeg encoding run is " + exitCode);
+            }
+
+            ti.setVideoFileName(dest.getName());
             ti.save();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
+
+        return true;
     }
 
 }

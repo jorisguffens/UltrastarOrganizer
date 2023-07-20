@@ -1,6 +1,7 @@
 package be.jorisg.ultrastarorganizer.commands.minimize;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
+import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
@@ -8,6 +9,7 @@ import picocli.CommandLine;
 import ws.schild.jave.MultimediaObject;
 
 import java.io.File;
+import java.util.Arrays;
 
 import static be.jorisg.ultrastarorganizer.utils.Utils.shrinkImage;
 
@@ -15,85 +17,115 @@ import static be.jorisg.ultrastarorganizer.utils.Utils.shrinkImage;
         description = "Minimize library by removing stuff and compressing images.")
 public class MinimizeCommand implements Runnable {
 
-    @CommandLine.Option(names = {"--remove-backgrounds"}, description = "Remove background images.")
-    private boolean removeBackgrounds;
+    @CommandLine.Option(names = {"--remove"}, description = "Remove files, options are: unused, background, cover, video, audio")
+    private String[] remove;
 
-    @CommandLine.Option(names = {"--max-cover-size"}, description = "Maximum cover image size.")
-    private int coverSize = 0;
-
-    @CommandLine.Option(names = {"--max-background-size"}, description = "Maximum background image size.")
-    private int backgroundSize = 0;
-
-    @CommandLine.Option(names = {"--convert-video"}, description = "Convert video codec to smaller file size.")
-    private boolean convertVideo = false;
+    @CommandLine.Option(names = {"--optimize"}, description = "Which files to optimize (resize or re-encode), options are: cover, background, video.")
+    private String[] optimize;
 
     @Override
     public void run() {
-//        try {
-//            Encoder en = new Encoder();
-//            System.out.println(String.join(", ", en.getSupportedEncodingFormats()));
-//        } catch (EncoderException e) {
-//            throw new RuntimeException(e);
-//        }
-
         UltrastarOrganizer.refresh();
         long size = FileUtils.sizeOfDirectory(UltrastarOrganizer.library().directory());
-        UltrastarOrganizer.library().tracks().forEach(this::process);
+        UltrastarOrganizer.library().trackDirectories().forEach(this::process);
 
         long newSize = FileUtils.sizeOfDirectory(UltrastarOrganizer.library().directory());
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 String.format("@|cyan Reduced library size from %.2f GB to %.2f GB (%.2f %%).|@",
                         size / 1024.d / 1024.d / 1024.d,
                         newSize / 1024.d / 1024.d / 1024.d,
-                        (1 - (size / (double) newSize)) * 100)));
+                        (1 - (newSize / (double) size)) * 100)));
+    }
+
+    private void process(TrackDirectory td) {
+        for ( TrackInfo ti : td.tracks() ) {
+            process(ti);
+        }
+
+        // unused files
+        for ( File f : td.directory().listFiles() ) {
+            if ( f.isDirectory() ) {
+                continue;
+            }
+            if ( td.tracks().stream().anyMatch(ti -> f.equals(ti.file()) || f.equals(ti.videoFile()) || f.equals(ti.audioFile())
+                    || f.equals(ti.backgroundImageFile()) || f.equals(ti.coverImageFile())) ) {
+                continue;
+            }
+
+            if ( shouldRemove("unused") ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|yellow The file " + f.getName() + " is never referenced -> REMOVED |@"));
+                f.delete();
+            }
+        }
     }
 
     private void process(TrackInfo ti) {
-
         File background = ti.backgroundImageFile();
         if (background != null) {
-            if (removeBackgrounds) {
+            if ( shouldRemove("background") ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|yellow Background file " + background.getName() + " -> REMOVED |@"));
                 background.delete();
-            } else if (backgroundSize > 0) {
-                shrinkImage(background, background, backgroundSize);
+            }
+            else if ( shouldOptimize("background") ) {
+                shrinkImage(background, background, 1920); // 1920x1080
             }
         }
 
         File cover = ti.coverImageFile();
-        if (cover != null && cover.exists() && coverSize > 0) {
-            shrinkImage(cover, cover, coverSize);
+        if (cover != null && cover.exists() ) {
+            if ( shouldRemove("cover") ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|yellow Cover file " + cover.getName() + " -> REMOVED |@"));
+                cover.delete();
+            }
+            else if ( shouldOptimize("cover") ) {
+                shrinkImage(cover, cover, 256); // 256 x 256
+            }
         }
 
         File video = ti.videoFile();
-        if (video != null && convertVideo) {
-            video(ti);
+        if (video != null ) {
+            if ( shouldRemove("video") ) {
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                        "@|yellow Video file " + video.getName() + " -> REMOVED |@"));
+                video.delete();
+            }
+            else if ( shouldOptimize("video") ) {
+                video(ti);
+            }
         }
 
-        File audio = ti.audioFile();
-        if (audio != null) {
-            audio(ti);
-        }
-
+        // TODO audio
     }
 
     public static void video(TrackInfo ti) {
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                "@|yellow Compressing video of|@ @|magenta " + ti.name() + "|@"));
+        try {
+            long size = ti.videoFile().length();
+            long time = System.currentTimeMillis();
 
-        File src = ti.videoFile();
-        Utils.shrinkVideo(ti);
-        File dest = ti.videoFile();
-
-        UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
-                "@|yellow   -> Reduced filesize of %s from %.2f MB to %.2f MB.|@",
-                ti.name(),
-                FileUtils.sizeOf(src) / 1024.d / 1024.d,
-                FileUtils.sizeOf(dest) / 1024.d / 1024.d)));
+            if ( Utils.shrinkVideo(ti) ) {
+                long duration = System.currentTimeMillis() - time;
+                long newSize = ti.videoFile().length();
+                UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(String.format(
+                        "@|yellow Reduced filesize of |@@|magenta %s|@ @|yellow from %.2f MB to %.2f MB in %.2f seconds.|@",
+                        ti.name(),
+                        size / 1024.d / 1024.d,
+                        newSize / 1024.d / 1024.d,
+                        duration / 1000.d)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private void audio(TrackInfo ti) {
-
+    private boolean shouldRemove(String key) {
+        return remove != null && Arrays.stream(remove).anyMatch(s -> s.equalsIgnoreCase(key));
     }
 
+    private boolean shouldOptimize(String key) {
+        return optimize != null && Arrays.stream(optimize).anyMatch(s -> s.equalsIgnoreCase(key));
+    }
 
 }

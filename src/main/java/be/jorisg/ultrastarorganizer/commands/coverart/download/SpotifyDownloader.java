@@ -67,7 +67,7 @@ public class SpotifyDownloader {
 
         // fallback to simpler query
         if ( tracks.length == 0 ) {
-            b = spotifyApi.searchTracks(main.safeName().replace(" (Duet)", "")).limit(1);
+            b = spotifyApi.searchTracks(main.safeName()).limit(1);
             if ( market != null ) {
                 b = b.market(CountryCode.getByCode(market));
             }
