@@ -10,6 +10,7 @@ import com.github.kiulian.downloader.YoutubeDownloader;
 import com.github.kiulian.downloader.downloader.request.RequestSearchResult;
 import com.github.kiulian.downloader.downloader.request.RequestVideoFileDownload;
 import com.github.kiulian.downloader.downloader.request.RequestVideoInfo;
+import com.github.kiulian.downloader.downloader.response.Response;
 import com.github.kiulian.downloader.model.search.SearchResult;
 import com.github.kiulian.downloader.model.search.SearchResultVideoDetails;
 import com.github.kiulian.downloader.model.search.field.SortField;
@@ -124,15 +125,28 @@ public class VideoDownloadCommand implements Runnable {
                 .type(TypeField.VIDEO)
                 .forceExactQuery(true)
                 .sortBy(SortField.RELEVANCE);
-        SearchResult result = dl.search(rsr).data();
+        Response<SearchResult> response = dl.search(rsr);
+        if ( response == null ) {
+            msg.add("Failed to search youtube for matching video.");
+            return;
+        }
+        SearchResult result = response.data();
 
         List<SearchResultVideoDetails> videos = result.videos();
         if (videos.isEmpty()) {
-            msg.add("No valid video found.");
+            msg.add("No videos returned in search request.");
             return;
         }
 
-        RequestVideoInfo request = new RequestVideoInfo(videos.get(0).videoId());
+        SearchResultVideoDetails vd = videos.stream()
+                .filter(v -> !v.title().toLowerCase().contains("lyrics"))
+                .findFirst().orElse(null);
+        if ( vd == null ) {
+            msg.add("Found video results but none are fitting.");
+            return;
+        }
+
+        RequestVideoInfo request = new RequestVideoInfo(vd.videoId());
         VideoInfo video = dl.getVideoInfo(request).data();
 
         if (video == null) {
