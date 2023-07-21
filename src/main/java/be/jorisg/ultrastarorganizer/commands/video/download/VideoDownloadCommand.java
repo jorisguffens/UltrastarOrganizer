@@ -176,8 +176,6 @@ public class VideoDownloadCommand implements Runnable {
             ti.setVideoFileName(dest.getName());
             ti.save();
 
-            msg.add("Compressed video.");
-
             for (TrackInfo t : td.tracks()) {
                 if (t.equals(ti)) continue;
                 t.setVideoFileName(dest.getName());
