@@ -85,6 +85,7 @@ public class TrackInfo {
     public String safeArtist() {
         String artist = artist();
         artist = artist.replace(",", " & ");
+        artist = artist.replace("*", "");
         artist = safe(artist);
         return artist;
     }
