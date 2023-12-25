@@ -2,7 +2,7 @@
 
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'org.cadixdev.licenser' version '0.6.1'
 }
 
@@ -54,4 +54,11 @@ jar {
 license {
     header = project.file('HEADER.txt')
     include '**/*.java'
+}
+
+sourceCompatibility = JavaVersion.VERSION_21
+targetCompatibility = JavaVersion.VERSION_21
+
+shadowJar {
+    archiveClassifier = ''
 }
