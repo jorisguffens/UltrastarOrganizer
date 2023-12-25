@@ -2,11 +2,10 @@ package be.jorisg.ultrastarorganizer.command;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.commands.automatch.AutomatchCommand;
-import be.jorisg.ultrastarorganizer.commands.doctor.DoctorCommand;
 import be.jorisg.ultrastarorganizer.commands.coverart.CoverArtCommand;
 import be.jorisg.ultrastarorganizer.commands.diff.DiffCommand;
-import be.jorisg.ultrastarorganizer.commands.video.VideoCommand;
-import be.jorisg.ultrastarorganizer.commands.video.download.VideoDownloadCommand;
+import be.jorisg.ultrastarorganizer.commands.doctor.DoctorCommand;
+import be.jorisg.ultrastarorganizer.commands.media.MediaCommand;
 import be.jorisg.ultrastarorganizer.commands.merge.MergeCommand;
 import be.jorisg.ultrastarorganizer.commands.minimize.MinimizeCommand;
 import be.jorisg.ultrastarorganizer.commands.reformat.ReformatCommand;
@@ -53,7 +52,7 @@ import java.util.concurrent.Callable;
                 SearchCommand.class,
                 MinimizeCommand.class,
                 StatsCommand.class,
-                VideoCommand.class,
+                MediaCommand.class,
                 MergeCommand.class,
                 DoctorCommand.class
         })

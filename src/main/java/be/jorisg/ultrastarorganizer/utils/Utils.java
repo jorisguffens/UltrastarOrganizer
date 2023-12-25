@@ -155,4 +155,18 @@ public class Utils {
         return true;
     }
 
+    public static void extractAudioFromVideo(File video, File audio) throws Exception {
+        try (ProcessWrapper ffmpeg = locator.createExecutor()) {
+            List.of(
+                    "-i", video.getAbsolutePath(), audio.getAbsolutePath()
+            ).forEach(ffmpeg::addArgument);
+            ffmpeg.execute();
+
+            int exitCode = ffmpeg.getProcessExitCode();
+            if (exitCode != 0) {
+                throw new RuntimeException("Exit code of ffmpeg encoding run is " + exitCode);
+            }
+        }
+    }
+
 }
