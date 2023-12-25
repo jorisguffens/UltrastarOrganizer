@@ -7,9 +7,16 @@ import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import picocli.CommandLine;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.info.VideoInfo;
+import ws.schild.jave.info.VideoSize;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -86,8 +93,40 @@ public class ReformatCommand implements Runnable {
         rename(ti.audioFile(), ti.safeName(), ti::setAudioFileName);
     }
 
+    private static final Map<VideoSize, String> VIDEO_SIZE_NAMES = new HashMap<>();
+
+    static {
+        Class<VideoSize> cls = VideoSize.class;
+        Arrays.stream(cls.getDeclaredFields())
+                .filter(f -> Modifier.isStatic(f.getModifiers()))
+                .filter(f -> f.getType() == cls)
+                .forEach(f -> {
+                    String name = f.getName().toUpperCase();
+                    name = name.replaceFirst("TWO", "2");
+                    name = name.replaceFirst("FOUR", "4");
+                    name = name.replaceFirst("SIXTEEN", "16");
+                    try {
+                        VIDEO_SIZE_NAMES.put((VideoSize) f.get(cls), name);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
     private void video(TrackInfo ti) throws IOException {
-        rename(ti.videoFile(), ti.safeName(), ti::setVideoFileName);
+        String name = ti.safeName();
+        if (ti.videoFile() != null) {
+            try {
+                VideoInfo video = new MultimediaObject(ti.videoFile()).getInfo().getVideo();
+                String quality = VIDEO_SIZE_NAMES.get(video.getSize());
+                if (quality == null) {
+                    quality = video.getSize().getHeight() + "p";
+                }
+                name = name + String.format(" [%s %.0ffps]", quality, video.getFrameRate());
+            } catch (Exception ignored) {
+            }
+        }
+        rename(ti.videoFile(), name, ti::setVideoFileName);
     }
 
     private void coverImage(TrackInfo ti) throws IOException {
