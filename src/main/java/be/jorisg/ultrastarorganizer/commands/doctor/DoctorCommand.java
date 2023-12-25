@@ -111,11 +111,13 @@ public class DoctorCommand implements Runnable {
 
     private void audio(@NotNull TrackInfo ti, @NotNull List<String> issues) {
         file(ti.audioFile(),
-                () -> missing(ti, Utils::verifyAudio, "mp3").orElse(null),
+                () -> missing(ti, Utils::verifyAudio, Utils.AUDIO_EXT).orElse(null),
                 ti::setAudioFileName,
                 f -> {
-                    ;
-                }, //new MultimediaObject(f).getInfo().getAudio(),
+                    if (!Utils.verifyAudio(f)) {//new MultimediaObject(f).getInfo().getAudio() == null) {
+                        throw new RuntimeException("File does not contain audio track.");
+                    }
+                },
                 "Audio file",
                 issues);
     }
@@ -125,7 +127,9 @@ public class DoctorCommand implements Runnable {
                 () -> missing(ti, Utils::verifyVideo, Utils.VIDEO_EXT).orElse(null),
                 ti::setVideoFileName,
                 f -> {
-                    ;
+                    if (!Utils.verifyVideo(f)) {//new MultimediaObject(f).getInfo().getVideo() == null) {
+                        throw new RuntimeException("File does not contain video track.");
+                    }
                 }, //new MultimediaObject(f).getInfo().getVideo(),
                 "Video file",
                 issues);
@@ -159,7 +163,7 @@ public class DoctorCommand implements Runnable {
                       @NotNull String name,
                       @NotNull List<String> issues) {
 
-        if (file != null && file.exists()) {
+        if (file != null) {
             try {
                 tester.accept(file);
                 return;
@@ -167,12 +171,15 @@ public class DoctorCommand implements Runnable {
             }
 
             if (!dryRun) {
-                issues.add(name + " is invalid -> REMOVED");
-                file.delete();
+                issues.add(name + " is invalid -> UNSET");
                 setter.accept(null);
             } else {
                 issues.add(name + " is invalid.");
             }
+        }
+
+        if (!dryRun) {
+            setter.accept(null);
         }
 
         file = finder.get();
@@ -194,7 +201,6 @@ public class DoctorCommand implements Runnable {
         } else {
             issues.add(name + " is missing -> MATCH FOUND");
         }
-
     }
 
     private void lyrics(@NotNull TrackInfo ti, @NotNull List<String> issues) {
