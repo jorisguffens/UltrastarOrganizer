@@ -3,25 +3,23 @@ package be.jorisg.ultrastarorganizer.commands.diff;
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.Library;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
+import be.jorisg.ultrastarorganizer.utils.Utils;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @CommandLine.Command(name = "diff",
-        description = "Compare your library against another library or tracklist csv.")
+        description = "Compare current library against another librarv.")
 public class DiffCommand implements Runnable {
 
-    @CommandLine.Parameters(index = "0", description = "The library/tracklist to compare with.")
+    @CommandLine.Parameters(index = "0", description = "The library directory to compare with.")
     private File target;
+
+    @CommandLine.Option(names = {"-c", "--copy-to"}, description = "Copy the shown files to the given directory.")
+    private File copyTo;
 
     @CommandLine.Option(names = {"-d", "--show-duplicates"}, description = "Show all tracks that are both in the current library and the given library.")
     private boolean showDuplicates = false;
@@ -40,84 +38,79 @@ public class DiffCommand implements Runnable {
         }
         UltrastarOrganizer.refresh();
 
-        List<String> other;
-        if (target.isDirectory()) {
-            other = collectFromDirectory();
-        } else {
-            other = collectFromTracklist();
-        }
-
-        compare(other);
-    }
-
-    // diff "C:\songlist.csv"
-
-    private List<String> collectFromTracklist() {
-        List<String> other = new ArrayList<>();
-        try (
-                CSVParser parser = CSVParser.parse(target, StandardCharsets.UTF_8, CSVFormat.DEFAULT.withHeader());
-        ) {
-            Map<String, Integer> headers = parser.getHeaderMap();
-            int artistIndex = headers.get("Artist");
-            int titleIndex = headers.get("Title");
-
-            for (CSVRecord rec : parser.getRecords()) {
-                String name = rec.get(artistIndex) + " - " + rec.get(titleIndex);
-                other.add(name);
-            }
-        } catch (IOException e) {
-            UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
-            e.printStackTrace(UltrastarOrganizer.out);
-        }
-
-        return other;
-    }
-
-    private List<String> collectFromDirectory() {
         Library lib = new Library(target);
-        return lib.tracks().stream().map(TrackInfo::name).toList();
+        isSimilar(lib.tracks());
     }
 
-    private void compare(Collection<String> other) {
-        List<String> thiz = UltrastarOrganizer.library().tracks()
-                .stream()
-                .map(TrackInfo::name)
-                .toList();
+    private boolean isSimilar(String s, String t) {
+        return LevenshteinDistance.getDefaultInstance().apply(s.toLowerCase(), t.toLowerCase()) < 2;
+    }
 
-        List<String> unique = new ArrayList<>(thiz); // only in current library
-        unique.removeAll(other);
+    private void isSimilar(Collection<TrackInfo> other) {
+        List<TrackInfo> thiz = UltrastarOrganizer.library().tracks();
 
-        List<String> missing = new ArrayList<>(other); // not in current library
-        missing.removeAll(thiz);
+        List<TrackInfo> unique = new ArrayList<>(thiz); // only in current library
+        unique.removeIf(ti -> other.stream().anyMatch(t -> isSimilar(t.name(), ti.name())));
 
-        List<String> duplicate = new ArrayList<>(thiz); // in both
-        duplicate.removeIf(s -> !other.contains(s));
+        List<TrackInfo> missing = new ArrayList<>(other); // not in current library
+        missing.removeIf(ti -> thiz.stream().anyMatch(t -> isSimilar(t.name(), ti.name())));
+
+        List<TrackInfo> duplicate = new ArrayList<>(thiz); // in both
+        duplicate.removeIf(ti -> other.stream().noneMatch(t -> isSimilar(t.name(), ti.name())));
+        Set<File> copied = new HashSet<>();
 
         // unique
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 "@|cyan Found " + unique.size() + " unique tracks. |@"));
         if (showUnique) {
-            unique.forEach(u -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|green + " + u + "|@")));
+            unique.forEach(ti -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|green + " + ti.name() + "|@")));
             UltrastarOrganizer.out.println();
+
+            if (copyTo != null) {
+                copyTo(unique, copied);
+            }
         }
 
         // missing
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 "@|cyan Found " + missing.size() + " missing tracks. |@"));
         if (showMissing) {
-            missing.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|red - " + m + "|@")));
+            missing.forEach(ti -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|red - " + ti.name() + "|@")));
             UltrastarOrganizer.out.println();
+
+            if (copyTo != null) {
+                copyTo(missing, copied);
+            }
         }
 
         // duplicate
         UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
                 "@|cyan Found " + duplicate.size() + " duplicate tracks. |@"));
         if (showDuplicates) {
-            duplicate.forEach(m -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
-                    "@|yellow * " + m + "|@")));
+            duplicate.forEach(ti -> UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string(
+                    "@|yellow * " + ti.name() + "|@")));
             UltrastarOrganizer.out.println();
+
+            if (copyTo != null) {
+                copyTo(duplicate, copied);
+            }
         }
+    }
+
+    private void copyTo(List<TrackInfo> tracks, Set<File> copied) {
+        tracks.stream()
+                .map(TrackInfo::parentDirectory)
+                .distinct()
+                .filter(td -> !copied.contains(td))
+                .forEach(td -> {
+                    copied.add(td);
+                    try {
+                        Utils.copyFolder(td.toPath(), copyTo.toPath().resolve(td.getName()));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 }
