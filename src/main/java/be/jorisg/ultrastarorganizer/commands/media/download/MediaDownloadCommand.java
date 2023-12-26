@@ -124,9 +124,10 @@ public class MediaDownloadCommand implements Runnable {
 
         // pre check
         boolean skip = switch (type) {
-            case VIDEO -> ti.videoFile() != null && ti.videoFile().exists();
-            case AUDIO -> ti.audioFile() != null && ti.audioFile().exists();
+            case VIDEO -> ti.videoFile() != null;
+            case AUDIO -> ti.audioFile() != null;
         };
+
         if (skip) {
             return;
         }
@@ -144,10 +145,12 @@ public class MediaDownloadCommand implements Runnable {
         final Format format = switch (type) {
             case VIDEO -> video.videoFormats().stream()
                     .filter(vf -> vf.videoQuality().ordinal() <= VideoQuality.hd1080.ordinal())
-                    .max(Comparator.comparingInt(vf -> vf.videoQuality().ordinal()))
+                    .max(Comparator.<VideoFormat>comparingInt(vf -> vf.videoQuality().ordinal())
+                            .thenComparing(Comparator.comparingInt(Format::bitrate).reversed()))
                     .orElseThrow();
             case AUDIO -> video.audioFormats().stream()
-                    .max(Comparator.comparingInt(vf -> vf.audioQuality().ordinal()))
+                    .max(Comparator.<AudioFormat>comparingInt(vf -> vf.audioQuality().ordinal())
+                            .thenComparing(Comparator.comparingInt(Format::bitrate).reversed()))
                     .orElseThrow();
         };
 
