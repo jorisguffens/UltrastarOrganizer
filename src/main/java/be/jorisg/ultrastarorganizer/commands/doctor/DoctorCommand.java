@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -26,6 +27,9 @@ public class DoctorCommand implements Runnable {
 
     @CommandLine.Option(names = {"--dry-run"}, description = "Print problems but don't fix them.")
     private boolean dryRun = false;
+
+    @CommandLine.Option(names = {"--ignore"}, description = "Don't fix or print problems for: cover, background, audio, video, lyrics.")
+    private String[] ignore = new String[0];
 
     @Override
     public void run() {
@@ -110,11 +114,15 @@ public class DoctorCommand implements Runnable {
     }
 
     private void audio(@NotNull TrackInfo ti, @NotNull List<String> issues) {
+        if (shouldIgnore("audio")) {
+            return;
+        }
+
         file(ti.audioFile(),
                 () -> missing(ti, Utils::verifyAudio, Utils.AUDIO_EXT).orElse(null),
                 ti::setAudioFileName,
                 f -> {
-                    if (!Utils.verifyAudio(f)) {//new MultimediaObject(f).getInfo().getAudio() == null) {
+                    if (!Utils.verifyAudio(f)) {
                         throw new RuntimeException("File does not contain audio track.");
                     }
                 },
@@ -123,19 +131,27 @@ public class DoctorCommand implements Runnable {
     }
 
     private void video(@NotNull TrackInfo ti, @NotNull List<String> issues) {
+        if (shouldIgnore("video")) {
+            return;
+        }
+
         file(ti.videoFile(),
                 () -> missing(ti, Utils::verifyVideo, Utils.VIDEO_EXT).orElse(null),
                 ti::setVideoFileName,
                 f -> {
-                    if (!Utils.verifyVideo(f)) {//new MultimediaObject(f).getInfo().getVideo() == null) {
+                    if (!Utils.verifyVideo(f)) {
                         throw new RuntimeException("File does not contain video track.");
                     }
-                }, //new MultimediaObject(f).getInfo().getVideo(),
+                },
                 "Video file",
                 issues);
     }
 
     private void cover(@NotNull TrackInfo ti, @NotNull List<String> issues) {
+        if (shouldIgnore("cover")) {
+            return;
+        }
+
         file(ti.coverImageFile(),
                 () -> missing(ti, f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
                         .orElse(null),
@@ -146,6 +162,10 @@ public class DoctorCommand implements Runnable {
     }
 
     private void background(@NotNull TrackInfo ti, @NotNull List<String> issues) {
+        if (shouldIgnore("background")) {
+            return;
+        }
+
         file(ti.backgroundImageFile(),
                 () -> missing(ti, f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
                         .orElse(null),
@@ -204,6 +224,10 @@ public class DoctorCommand implements Runnable {
     }
 
     private void lyrics(@NotNull TrackInfo ti, @NotNull List<String> issues) {
+        if (shouldIgnore("lyrics")) {
+            return;
+        }
+
         // LYRICS
         NoteLyricCollection nlc = null;
         try {
@@ -235,7 +259,9 @@ public class DoctorCommand implements Runnable {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace(UltrastarOrganizer.out);
+            e.printStackTrace();
+            issues.add("Error during lyrics validation: " + e.getClass().getName() + ": " + e.getMessage());
+//            e.printStackTrace(UltrastarOrganizer.out);
         }
     }
 
@@ -248,6 +274,10 @@ public class DoctorCommand implements Runnable {
 
     private interface ThrowingConsumer<T> {
         void accept(T t) throws Exception;
+    }
+
+    private boolean shouldIgnore(String key) {
+        return ignore != null && Arrays.stream(ignore).anyMatch(s -> s.equalsIgnoreCase(key));
     }
 
 }
