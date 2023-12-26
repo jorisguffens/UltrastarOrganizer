@@ -2,18 +2,17 @@ package be.jorisg.ultrastarorganizer.utils;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import com.drew.lang.annotations.NotNull;
-import picocli.CommandLine;
 
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class Tasker {
 
     private final Iterator<Task> tasks;
 
-    private final Map<Task, CompletableFuture<Void>> running = new ConcurrentHashMap<>();
+    private final Set<CompletableFuture<Void>> running = new CopyOnWriteArraySet<>();
     private final CompletableFuture<Void> thiz = new CompletableFuture<>();
 
     private final int maxThreads;
@@ -42,20 +41,26 @@ public class Tasker {
             }
             return;
         }
+
         if (running.size() >= maxThreads) {
             return;
         }
 
         Task task = tasks.next();
-        CompletableFuture<Void> future = CompletableFuture.runAsync(task.executor())
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        running.add(future);
+
+        future.completeAsync(() -> {
+                    task.executor().run();
+                    return null;
+                })
                 .handle((v, e) -> {
-                    if ( e != null )
+                    if (e != null)
                         e.printStackTrace(UltrastarOrganizer.out);
-                    running.remove(task);
+                    running.remove(future);
                     next();
                     return null;
                 });
-        running.put(task, future);
     }
 
     public record Task(@NotNull String name, @NotNull Runnable executor) {
