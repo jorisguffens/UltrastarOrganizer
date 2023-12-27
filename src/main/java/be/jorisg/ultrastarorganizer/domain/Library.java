@@ -34,25 +34,31 @@ public class Library {
                 .setInitialMax(files.length)
                 .setMaxRenderedLength(100)
                 .setStyle(ProgressBarStyle.ASCII);
+
+        List<String> issues = new ArrayList<>();
+
         try (ProgressBar pb = pbb.build()) {
             for (File file : files) {
                 if (!file.isDirectory()) {
                     continue;
                 }
 
-                loadTracks(file);
+                processTracks(file, issues);
                 pb.step();
             }
         }
+
+        issues.forEach(System.out::println);
     }
 
-    private void loadTracks(File directory) {
+    private void processTracks(File directory, List<String> issues) {
         List<File> txtFiles = filesByExtensions(directory, "txt");
         List<TrackInfo> tracks = new ArrayList<>();
         for (File file : txtFiles) {
             try {
                 tracks.add(TrackInfo.load(file));
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                issues.add("An error occured for file '" + file + "': " + ex.getMessage());
             }
         }
 

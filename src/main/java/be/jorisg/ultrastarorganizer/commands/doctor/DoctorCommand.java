@@ -6,17 +6,14 @@ import be.jorisg.ultrastarorganizer.domain.NoteLyricBlock;
 import be.jorisg.ultrastarorganizer.domain.NoteLyricCollection;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.utils.Utils;
-import com.drew.lang.annotations.NotNull;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.NotNull;
 import picocli.CommandLine;
 
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -153,8 +150,12 @@ public class DoctorCommand implements Runnable {
         }
 
         file(ti.coverImageFile(),
-                () -> missing(ti, f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
-                        .orElse(null),
+                () -> missing(
+                        ti,
+                        f -> !f.equals(ti.backgroundImageFile()) && Utils.verifyImage(f),
+                        Comparator.comparing(f -> f.getName().contains("[BG]") ? 1 : 0),
+                        Utils.IMAGE_EXT
+                ).orElse(null),
                 ti::setCoverImageFileName,
                 f -> ImageIO.read(ti.coverImageFile()),
                 "Cover image",
@@ -167,8 +168,12 @@ public class DoctorCommand implements Runnable {
         }
 
         file(ti.backgroundImageFile(),
-                () -> missing(ti, f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f), Utils.IMAGE_EXT)
-                        .orElse(null),
+                () -> missing(
+                        ti,
+                        f -> !f.equals(ti.coverImageFile()) && Utils.verifyImage(f),
+                        Comparator.comparing(f -> f.getName().contains("[CO]") ? 1 : 0),
+                        Utils.IMAGE_EXT
+                ).orElse(null),
                 ti::setBackgroundImageFileName,
                 f -> ImageIO.read(ti.backgroundImageFile()),
                 "Background image",
@@ -229,14 +234,14 @@ public class DoctorCommand implements Runnable {
         }
 
         // LYRICS
-        NoteLyricCollection nlc = null;
+        NoteLyricCollection nlc;
         try {
             nlc = ti.noteLyrics();
-            int beat = nlc.noteLyricBlocks().get(0).noteLyrics().get(0).beat();
+            int beat = nlc.noteLyricBlocks().getFirst().noteLyrics().getFirst().beat();
             if (beat < 0) {
                 if (!dryRun) {
                     issues.add("First beat was negative -> FIXED");
-                    ti.setNoteLyrics(nlc.shift(Math.abs(beat)));
+                    ti.overwriteNoteLyrics(nlc.shift(Math.abs(beat)));
                 } else {
                     issues.add("First beat is negative.");
                 }
@@ -252,16 +257,14 @@ public class DoctorCommand implements Runnable {
                 } else if (nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR)) {
                     if (!dryRun) {
                         issues.add("Duet with invalid format -> FIXED");
-                        ti.convertDuetFormat();
+                        ti.overwriteNoteLyrics(nlc);
                     } else {
                         issues.add("Duet with invalid format.");
                     }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
             issues.add("Error during lyrics validation: " + e.getClass().getName() + ": " + e.getMessage());
-//            e.printStackTrace(UltrastarOrganizer.out);
         }
     }
 
@@ -269,6 +272,12 @@ public class DoctorCommand implements Runnable {
         return Utils.findFilesByExtensions(ti.parentDirectory(), extensions).stream()
                 .filter(filter)
                 .findFirst();
+    }
+
+    private Optional<File> missing(TrackInfo ti, Predicate<File> filter, Comparator<File> comparator, String... extensions) {
+        return Utils.findFilesByExtensions(ti.parentDirectory(), extensions).stream()
+                .filter(filter)
+                .max(comparator);
     }
 
 

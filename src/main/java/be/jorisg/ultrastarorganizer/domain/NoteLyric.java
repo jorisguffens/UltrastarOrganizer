@@ -28,7 +28,7 @@ public record NoteLyric(NoteType type, int beat, int duration, int note, String 
     @Override
     public String toString() {
         if (type == NoteType.BREAK) {
-            return type.key + " " + beat;
+            return type.key + " " + beat + (duration > 0 ? " " + duration : "");
         }
         return type.key + " " + beat + " " + duration + " " + note + " " + text;
     }

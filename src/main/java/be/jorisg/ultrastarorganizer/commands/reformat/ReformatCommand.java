@@ -45,6 +45,7 @@ public class ReformatCommand implements Runnable {
             try {
                 process(ti);
             } catch (Exception e) {
+                e.printStackTrace();
                 UltrastarOrganizer.out.println(CommandLine.Help.Ansi.AUTO.string("@|red ERROR: " + e.getMessage() + "|@"));
             }
         }
@@ -68,6 +69,9 @@ public class ReformatCommand implements Runnable {
         video(ti);
         coverImage(ti);
         backgroundImage(ti);
+
+        // update lyrics
+        ti.overwriteNoteLyrics(ti.noteLyrics());
 
         // update TrackInfo txt file name
         String name = ti.safeName();

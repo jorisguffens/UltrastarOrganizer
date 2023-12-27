@@ -10,7 +10,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
     }
 
     public NoteLyricCollection shift(int amount) {
-        if (noteLyricBlocks.get(0).noteLyrics().get(0).beat() + amount < 0) {
+        if (noteLyricBlocks.getFirst().noteLyrics().getFirst().beat() + amount < 0) {
             throw new IllegalArgumentException();
         }
 
@@ -40,7 +40,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
         return lines;
     }
 
-    public static NoteLyricCollection fromStringList(List<String> noteLyrics) {
+    public static NoteLyricCollection fromStringList(List<String> noteLyrics, boolean relative) {
         List<NoteLyricBlock> blocks = new ArrayList<>();
         List<NoteLyric> block = new ArrayList<>();
 
@@ -54,7 +54,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
             }
 
             String trim = line.trim();
-            if (trim.equals("")) {
+            if (trim.isEmpty()) {
                 continue;
             }
 
@@ -80,7 +80,7 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
             NoteLyric noteLyric = NoteLyric.fromString(line);
 
             // duet (alternative format)
-            if (noteLyric.beat() + 200 < beat) {
+            if (!relative && noteLyric.beat() + 200 < beat) {
                 // first block
                 if ( blocks.isEmpty() ) {
                     format = NoteLyricBlock.DuetFormat.ALTERNATIVE;

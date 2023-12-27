@@ -3,7 +3,6 @@ package be.jorisg.ultrastarorganizer.utils;
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.tika.Tika;
 import ws.schild.jave.MultimediaObject;
 import ws.schild.jave.process.ProcessLocator;
 import ws.schild.jave.process.ProcessWrapper;
@@ -29,8 +28,6 @@ public class Utils {
     public final static String[] VIDEO_EXT = new String[]{"mp4", "avi", "mkv", "flv", "mov", "mpg", "m4v", "divx", "webm"};
     public final static String[] IMAGE_EXT = new String[]{"jpg", "png", "jpeg", "jfif"};
 
-    private final static Tika tika = new Tika();
-
     private final static ProcessLocator locator = new DefaultFFMPEGLocator();
 
     public static List<File> findFilesByExtensions(File directory, String... extensions) {
@@ -47,30 +44,30 @@ public class Utils {
 
     public static boolean verifyVideo(File file) {
         try {
-            String mediaType = tika.detect(file);
+            String mediaType = Files.probeContentType(file.toPath());
             return mediaType.contains("video/") || mediaType.equals("application/octet-stream");
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(UltrastarOrganizer.out);
         }
         return false;
     }
 
     public static boolean verifyAudio(File file) {
         try {
-            String mediaType = tika.detect(file);
+            String mediaType = Files.probeContentType(file.toPath());
             return mediaType.equals("media/mp3") || mediaType.equals("audio/mpeg");
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(UltrastarOrganizer.out);
         }
         return false;
     }
 
     public static boolean verifyImage(File file) {
         try {
-            String mediaType = tika.detect(file);
+            String mediaType = Files.probeContentType(file.toPath());
             return mediaType.equals("image/png") || mediaType.equals("image/jpeg");
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(UltrastarOrganizer.out);
         }
         return false;
     }

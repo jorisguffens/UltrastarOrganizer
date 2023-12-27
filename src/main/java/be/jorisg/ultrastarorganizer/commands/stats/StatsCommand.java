@@ -2,14 +2,10 @@ package be.jorisg.ultrastarorganizer.commands.stats;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.Library;
-import be.jorisg.ultrastarorganizer.domain.TrackDirectory;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
-import info.aduna.io.FileUtil;
 import org.apache.commons.io.FileUtils;
-import org.fusesource.jansi.Ansi;
 import picocli.CommandLine;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 

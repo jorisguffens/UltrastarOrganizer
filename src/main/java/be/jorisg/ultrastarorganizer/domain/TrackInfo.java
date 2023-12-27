@@ -1,31 +1,29 @@
 package be.jorisg.ultrastarorganizer.domain;
 
-import org.apache.any23.encoding.TikaEncodingDetector;
+import com.ibm.icu.text.CharsetDetector;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.regex.Pattern;
 
 public class TrackInfo {
 
-    private final static TikaEncodingDetector tika = new TikaEncodingDetector();
-
     private File file;
 
-    private final Charset charset;
     private final Map<String, String> headers;
-    private final List<String> noteLyricLines;
+    private List<String> noteLyricLines;
 
-    private TrackInfo(File file, Charset charset, Map<String, String> headers, List<String> noteLyricLines) {
+    private TrackInfo(File file, Map<String, String> headers, List<String> noteLyricLines) {
         this.file = file;
-        this.charset = charset;
         this.headers = headers;
         this.noteLyricLines = noteLyricLines;
     }
@@ -189,18 +187,18 @@ public class TrackInfo {
     }
 
     public NoteLyricCollection noteLyrics() {
-        return NoteLyricCollection.fromStringList(noteLyricLines);
+        boolean relative = headers.containsKey("RELATIVE") && headers.get("RELATIVE").equals("YES");
+        return NoteLyricCollection.fromStringList(noteLyricLines, relative);
     }
 
-    public void setNoteLyrics(NoteLyricCollection noteLyricCollection) {
-        this.noteLyricLines.clear();
-        this.noteLyricLines.addAll(noteLyricCollection.toStringList());
+    public void overwriteNoteLyrics(NoteLyricCollection noteLyricCollection) {
+        this.noteLyricLines = noteLyricCollection.toStringList();
     }
 
     //
 
     public void save() {
-        try (FileWriter fw = new FileWriter(file, charset)) {
+        try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
             // headers
             for (String header : headers.keySet().stream().sorted().toList()) {
                 String line = "#" + header.toUpperCase() + ":" + headers.get(header.toUpperCase());
@@ -216,31 +214,23 @@ public class TrackInfo {
         }
     }
 
-    public void convertDuetFormat() {
-        NoteLyricCollection nlc = noteLyrics();
-
-        if (headers.containsKey("DUETSINGERP1")) {
-            headers.put("DUETSINGERP1", "P1");
-        }
-        if (headers.containsKey("DUETSINGERP2")) {
-            headers.put("DUETSINGERP2", "P2");
-        }
-
-        noteLyricLines.clear();
-        noteLyricLines.addAll(nlc.toStringList());
-    }
-
     public static TrackInfo load(File file) {
+        CharsetDetector detector = new CharsetDetector();
+
         Charset charset;
         try (FileInputStream fis = new FileInputStream(file)) {
-            charset = Charset.forName(tika.guessEncoding(fis));
+            detector.setText(fis.readAllBytes());
+            charset = Charset.forName(detector.detect().getName());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         List<String> contents;
         try {
-            contents = IOUtils.readLines(file.toURI().toURL().openStream(), charset);
+            ByteBuffer bb = ByteBuffer.wrap(FileUtils.readFileToByteArray(file));
+            CharBuffer cb = charset.decode(bb);
+            bb = StandardCharsets.UTF_8.encode(cb);
+            contents = new String(bb.array(), StandardCharsets.UTF_8).lines().toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -255,16 +245,29 @@ public class TrackInfo {
 
             String key = line.split(Pattern.quote(":"))[0].substring(1);
             String value = line.substring(key.length() + 2).trim();
+            if (value.isBlank()) {
+                continue;
+            }
+
             headers.put(key.toUpperCase(), value);
         }
 
         List<String> noteLyricLines = contents.subList(i, contents.size());
 
-        if (headers.size() == 0 || !headers.containsKey("ARTIST") || !headers.containsKey("TITLE")) {
+        if (headers.isEmpty() || !headers.containsKey("ARTIST") || !headers.containsKey("TITLE")) {
             throw new RuntimeException("Required headers are missing from file.");
         }
 
-        return new TrackInfo(file, charset, headers, noteLyricLines);
+        if (headers.containsKey("DUETSINGERP1")) {
+            headers.put("P1", headers.get("DUETSINGERP1"));
+            headers.remove("DUETSINGERP1");
+        }
+        if (headers.containsKey("DUETSINGERP2")) {
+            headers.put("P2", headers.get("DUETSINGERP2"));
+            headers.remove("DUETSINGERP2");
+        }
+
+        return new TrackInfo(file, headers, noteLyricLines);
     }
 
 }
