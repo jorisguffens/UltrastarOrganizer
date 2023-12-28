@@ -42,34 +42,26 @@ public class Utils {
         }).collect(Collectors.toList());
     }
 
-    public static boolean verifyVideo(File file) {
+    private static boolean verify(File file, String... mediaTypes) {
         try {
             String mediaType = Files.probeContentType(file.toPath());
-            return mediaType.contains("video/") || mediaType.equals("application/octet-stream");
+            return mediaType != null && Arrays.stream(mediaTypes).anyMatch(mediaType::contains);
         } catch (IOException e) {
             e.printStackTrace(UltrastarOrganizer.out);
         }
         return false;
+    }
+
+    public static boolean verifyVideo(File file) {
+        return verify(file, "video/", "application/octet-stream");
     }
 
     public static boolean verifyAudio(File file) {
-        try {
-            String mediaType = Files.probeContentType(file.toPath());
-            return mediaType.equals("media/mp3") || mediaType.equals("audio/mpeg");
-        } catch (IOException e) {
-            e.printStackTrace(UltrastarOrganizer.out);
-        }
-        return false;
+        return verify(file, "media/mp3", "audio/mpeg");
     }
 
     public static boolean verifyImage(File file) {
-        try {
-            String mediaType = Files.probeContentType(file.toPath());
-            return mediaType.equals("image/png") || mediaType.equals("image/jpeg");
-        } catch (IOException e) {
-            e.printStackTrace(UltrastarOrganizer.out);
-        }
-        return false;
+        return verify(file, "image/png", "image/jpeg");
     }
 
     public static boolean shrinkImage(File file, File outputFile, int maxSize) {

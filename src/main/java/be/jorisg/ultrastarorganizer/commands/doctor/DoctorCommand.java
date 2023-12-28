@@ -2,12 +2,13 @@ package be.jorisg.ultrastarorganizer.commands.doctor;
 
 import be.jorisg.ultrastarorganizer.UltrastarOrganizer;
 import be.jorisg.ultrastarorganizer.domain.Library;
-import be.jorisg.ultrastarorganizer.domain.NoteLyricBlock;
+import be.jorisg.ultrastarorganizer.domain.NoteLyric;
 import be.jorisg.ultrastarorganizer.domain.NoteLyricCollection;
 import be.jorisg.ultrastarorganizer.domain.TrackInfo;
 import be.jorisg.ultrastarorganizer.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import picocli.CommandLine;
 
 import javax.imageio.ImageIO;
@@ -25,7 +26,7 @@ public class DoctorCommand implements Runnable {
     @CommandLine.Option(names = {"--dry-run"}, description = "Print problems but don't fix them.")
     private boolean dryRun = false;
 
-    @CommandLine.Option(names = {"--ignore"}, description = "Don't fix or print problems for: cover, background, audio, video, lyrics.")
+    @CommandLine.Option(names = {"--ignore", "-i"}, description = "Don't fix or print problems for: cover, background, audio, video, lyrics.")
     private String[] ignore = new String[0];
 
     @Override
@@ -125,6 +126,19 @@ public class DoctorCommand implements Runnable {
                 },
                 "Audio file",
                 issues);
+
+        if (ti.audioFile() != null || ti.videoFile() == null) {
+            return;
+        }
+
+        issues.removeLast();
+        File dest = new File(ti.parentDirectory(), ti.safeName() + ".mp3");
+        try {
+            Utils.extractAudioFromVideo(ti.videoFile(), dest);
+            issues.add("Audio file is missing -> FIXED");
+        } catch (Exception e) {
+            issues.add("Audio file is missing -> FAILED: " + e.getMessage());
+        }
     }
 
     private void video(@NotNull TrackInfo ti, @NotNull List<String> issues) {
@@ -181,7 +195,7 @@ public class DoctorCommand implements Runnable {
         issues.remove("Background image is missing.");
     }
 
-    private void file(@NotNull File file,
+    private void file(@Nullable File file,
                       @NotNull Supplier<File> finder,
                       @NotNull Consumer<String> setter,
                       @NotNull ThrowingConsumer<File> tester,
@@ -241,27 +255,27 @@ public class DoctorCommand implements Runnable {
             if (beat < 0) {
                 if (!dryRun) {
                     issues.add("First beat was negative -> FIXED");
-                    ti.overwriteNoteLyrics(nlc.shift(Math.abs(beat)));
+                    nlc = nlc.shift(Math.abs(beat));
                 } else {
                     issues.add("First beat is negative.");
                 }
             }
+
             if (nlc.noteLyricBlocks().stream().anyMatch(nlb -> !nlb.isValid())) {
                 issues.add("Lyrics contain invalid note blocks.");
             }
 
             long blocks = nlc.noteLyricBlocks().stream().filter(b -> b.singer() != null).count();
-            if (ti.isDuet()) {
-                if (blocks < 2) {
-                    issues.add("Duet with less than 2 blocks.");
-                } else if (nlc.noteLyricBlocks().stream().anyMatch(b -> b.format() != NoteLyricBlock.DuetFormat.ULTRASTAR)) {
-                    if (!dryRun) {
-                        issues.add("Duet with invalid format -> FIXED");
-                        ti.overwriteNoteLyrics(nlc);
-                    } else {
-                        issues.add("Duet with invalid format.");
-                    }
-                }
+            if (ti.isDuet() && blocks < 2) {
+                issues.add("Duet with less than 2 blocks.");
+            }
+
+            if (nlc.noteLyricBlocks().stream().flatMap(b -> b.noteLyrics().stream()).filter(nl -> nl.type() != NoteLyric.NoteType.BREAK).anyMatch(nl -> nl.duration() == 0)) {
+                issues.add("Lyrics contains notes with duration 0.");
+            }
+
+            if (!dryRun) {
+                ti.overwriteNoteLyrics(nlc);
             }
         } catch (Exception e) {
             issues.add("Error during lyrics validation: " + e.getClass().getName() + ": " + e.getMessage());

@@ -58,7 +58,7 @@ public class Library {
             try {
                 tracks.add(TrackInfo.load(file));
             } catch (Exception ex) {
-                issues.add("An error occured for file '" + file + "': " + ex.getMessage());
+                issues.add("An error occured for file '" + directory.getParentFile().toPath().relativize(file.toPath()) + "': " + ex.getMessage());
             }
         }
 

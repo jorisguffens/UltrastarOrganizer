@@ -94,6 +94,26 @@ public record NoteLyricCollection(List<NoteLyricBlock> noteLyricBlocks) {
                 singer = NoteLyricBlock.Singer.values()[Math.min(singer.ordinal() + 1, NoteLyricBlock.Singer.values().length - 1)];
             }
 
+            if (!block.isEmpty()) {
+                NoteLyric last = block.getLast();
+
+                // Remove duplicate break blocks
+                if (noteLyric.type() == NoteLyric.NoteType.BREAK
+                        && last.type() == NoteLyric.NoteType.BREAK) {
+                    block.removeLast();
+                }
+
+                // Fix format where 0 duration means until next beat
+                if (noteLyric.type() != NoteLyric.NoteType.BREAK && last.duration() == 0) {
+                    block.removeLast();
+                    block.add(last.withDuration(noteLyric.beat() - last.beat()));
+                }
+            }
+
+            if (relative && noteLyric.type() == NoteLyric.NoteType.BREAK && noteLyric.duration() == 0) {
+                noteLyric = noteLyric.withBeat(noteLyric.beat() - 1).withDuration(1);
+            }
+
             block.add(noteLyric);
             beat = noteLyric.beat();
         }

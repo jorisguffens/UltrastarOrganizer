@@ -70,9 +70,6 @@ public class ReformatCommand implements Runnable {
         coverImage(ti);
         backgroundImage(ti);
 
-        // update lyrics
-        ti.overwriteNoteLyrics(ti.noteLyrics());
-
         // update TrackInfo txt file name
         String name = ti.safeName();
         if (ti.isDuet()) {

@@ -187,12 +187,15 @@ public class TrackInfo {
     }
 
     public NoteLyricCollection noteLyrics() {
-        boolean relative = headers.containsKey("RELATIVE") && headers.get("RELATIVE").equals("YES");
-        return NoteLyricCollection.fromStringList(noteLyricLines, relative);
+        return NoteLyricCollection.fromStringList(noteLyricLines, isNoteLyricsRelative());
     }
 
     public void overwriteNoteLyrics(NoteLyricCollection noteLyricCollection) {
         this.noteLyricLines = noteLyricCollection.toStringList();
+    }
+
+    private boolean isNoteLyricsRelative() {
+        return headers.containsKey("RELATIVE") && headers.get("RELATIVE").equalsIgnoreCase("YES");
     }
 
     //
@@ -255,7 +258,7 @@ public class TrackInfo {
         List<String> noteLyricLines = contents.subList(i, contents.size());
 
         if (headers.isEmpty() || !headers.containsKey("ARTIST") || !headers.containsKey("TITLE")) {
-            throw new RuntimeException("Required headers are missing from file.");
+            throw new IllegalArgumentException("Required headers are missing from file.");
         }
 
         if (headers.containsKey("DUETSINGERP1")) {
@@ -265,6 +268,12 @@ public class TrackInfo {
         if (headers.containsKey("DUETSINGERP2")) {
             headers.put("P2", headers.get("DUETSINGERP2"));
             headers.remove("DUETSINGERP2");
+        }
+
+        if (headers.containsKey("RELATIVE") && headers.get("RELATIVE").equalsIgnoreCase("YES")
+                && (!headers.containsKey("CALCMEDLEY") || !headers.get("CALCMEDLEY").equalsIgnoreCase("OFF"))
+                && !headers.containsKey("MEDLEYSTARTBEAT") && !headers.containsKey("MEDLEYENDBEAT")) {
+            throw new IllegalArgumentException("Medley calculation must be disabled when using relative notes.");
         }
 
         return new TrackInfo(file, headers, noteLyricLines);
